@@ -5,10 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>The best way to save your passwords.</title>
-
-    <meta name="description"
-          content="SecureVault is a local password manager designed to keep your passwords protected.">
+    <title>VaultSecure — Secure Password Manager</title>
 
     <style>
         * {
@@ -22,524 +19,369 @@
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "Segoe UI", Arial, sans-serif;
             background:
-                radial-gradient(circle at 50% -10%, #063b67 0%, #020b17 35%, #01040a 75%);
+                radial-gradient(
+                    circle at top,
+                    #172a46 0%,
+                    #0b1020 45%,
+                    #050810 100%
+                );
             color: white;
             min-height: 100vh;
-            overflow-x: hidden;
         }
 
-        /* NAVIGATION */
+        /* NAVBAR */
 
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .navbar {
             width: 100%;
-            height: 72px;
+            padding: 20px 7%;
 
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
 
-            padding: 0 7%;
+            background: rgba(5, 8, 16, 0.78);
 
-            background: rgba(1, 7, 15, 0.72);
-            backdrop-filter: blur(18px);
+            border-bottom:
+                1px solid rgba(97, 218, 251, 0.10);
 
-            border-bottom: 1px solid rgba(0, 200, 255, 0.12);
+            backdrop-filter: blur(12px);
 
-            z-index: 1000;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            color: #61dafb;
+            text-decoration: none;
 
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 800;
         }
 
-        .brand-icon {
-            width: 38px;
-            height: 38px;
-
-            border-radius: 50%;
-
+        .nav-links {
             display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background: linear-gradient(135deg, #00d9ff, #176cff);
-
-            box-shadow: 0 0 25px rgba(0, 200, 255, 0.35);
+            gap: 25px;
         }
 
-        .brand-icon::before {
-            content: "🔒";
-            font-size: 18px;
-        }
-
-        .brand span {
-            background: linear-gradient(90deg, white, #00d9ff);
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-
-        nav ul {
-            display: flex;
-            gap: 30px;
-            list-style: none;
-        }
-
-        nav a {
-            color: #b9c9d8;
+        .nav-links a {
+            color: #c5cfdf;
             text-decoration: none;
+
             font-size: 14px;
-            transition: 0.25s;
+
+            transition: 0.2s;
         }
 
-        nav a:hover {
-            color: #00d9ff;
+        .nav-links a:hover {
+            color: #61dafb;
         }
 
         /* HERO */
 
         .hero {
-            min-height: 100vh;
+            min-height: 82vh;
+
+            padding: 80px 7%;
 
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
 
             text-align: center;
-
-            padding: 120px 20px 80px;
-
-            position: relative;
         }
 
-        .glow {
-            position: absolute;
+        .hero-content {
+            max-width: 850px;
+        }
 
-            width: 500px;
-            height: 500px;
-
-            background: #0077ff;
-
-            opacity: 0.12;
-
-            filter: blur(130px);
-
-            border-radius: 50%;
-
-            top: 100px;
-
-            pointer-events: none;
+        .lock-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
         }
 
         .hero h1 {
-            font-size: clamp(48px, 8vw, 88px);
+            font-size: clamp(42px, 7vw, 76px);
 
             line-height: 1;
 
-            letter-spacing: -4px;
+            margin-bottom: 20px;
 
-            margin-bottom: 22px;
-
-            position: relative;
+            color: #61dafb;
         }
 
-        .hero h1 span {
-            background: linear-gradient(
-                90deg,
-                #ffffff,
-                #00d9ff,
-                #237cff
-            );
+        .hero h2 {
+            font-size: clamp(22px, 4vw, 34px);
 
-            -webkit-background-clip: text;
-
-            color: transparent;
+            margin-bottom: 18px;
         }
 
         .hero p {
-            max-width: 680px;
-
-            color: #9eb0c2;
+            color: #aeb8ca;
 
             font-size: 18px;
-
             line-height: 1.7;
 
-            margin-bottom: 35px;
+            max-width: 700px;
+
+            margin:
+                0 auto 35px;
         }
+
+        /* BUTTONS */
 
         .buttons {
             display: flex;
 
-            gap: 15px;
+            justify-content: center;
+
+            gap: 14px;
 
             flex-wrap: wrap;
-
-            justify-content: center;
         }
 
         .btn {
-            display: inline-flex;
+            display: inline-block;
 
-            align-items: center;
+            padding:
+                14px 24px;
 
-            justify-content: center;
-
-            padding: 15px 25px;
-
-            border-radius: 12px;
+            border-radius: 11px;
 
             text-decoration: none;
 
             font-weight: 700;
 
-            transition: 0.25s;
+            font-size: 15px;
 
-            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
         }
 
         .primary {
-            background: linear-gradient(
-                135deg,
-                #00d9ff,
-                #176cff
-            );
+            background: #61dafb;
 
-            color: white;
-
-            box-shadow:
-                0 10px 35px rgba(0, 132, 255, 0.25);
-        }
-
-        .primary:hover {
-            transform: translateY(-3px);
-
-            box-shadow:
-                0 15px 45px rgba(0, 180, 255, 0.35);
+            color: #07111d;
         }
 
         .secondary {
-            border: 1px solid rgba(0, 210, 255, 0.3);
+            background: #1d2b44;
 
-            background: rgba(255, 255, 255, 0.04);
+            color: white;
 
-            color: #d8e8f5;
-        }
-
-        .secondary:hover {
-            border-color: #00d9ff;
-
-            background: rgba(0, 210, 255, 0.08);
-        }
-
-        .version {
-            margin-top: 18px;
-
-            color: #617487;
-
-            font-size: 12px;
+            border:
+                1px solid #324766;
         }
 
         /* SECTIONS */
 
-        section {
-            padding: 100px 7%;
+        .section {
+            padding: 80px 7%;
         }
 
-        .section-title {
+        .section h2 {
             text-align: center;
 
-            margin-bottom: 55px;
+            font-size: 36px;
+
+            margin-bottom: 15px;
         }
 
-        .section-title h2 {
-            font-size: 42px;
+        .section-intro {
+            text-align: center;
 
-            margin-bottom: 12px;
-        }
+            color: #8f9bb0;
 
-        .section-title p {
-            color: #8094a8;
+            max-width: 650px;
+
+            margin:
+                0 auto 45px;
+
+            line-height: 1.6;
         }
 
         /* FEATURES */
 
         .features {
+            max-width: 1100px;
+
+            margin: auto;
+
             display: grid;
 
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(220px, 1fr)
+                );
 
             gap: 20px;
-
-            max-width: 1200px;
-
-            margin: auto;
         }
 
-        .card {
-            padding: 30px;
+        .feature {
+            padding: 25px;
 
-            border-radius: 20px;
+            border-radius: 16px;
 
             background:
-                linear-gradient(
-                    145deg,
-                    rgba(255,255,255,0.06),
-                    rgba(255,255,255,0.025)
+                rgba(
+                    17,
+                    26,
+                    46,
+                    0.85
                 );
 
-            border: 1px solid rgba(255,255,255,0.08);
+            border:
+                1px solid
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.10
+                );
 
-            transition: 0.3s;
+            transition: 0.2s;
         }
 
-        .card:hover {
-            transform: translateY(-6px);
+        .feature:hover {
+            transform: translateY(-4px);
 
             border-color:
-                rgba(0, 210, 255, 0.35);
-
-            box-shadow:
-                0 15px 50px rgba(0, 0, 0, 0.25),
-                0 0 30px rgba(0, 150, 255, 0.08);
-        }
-
-        .card-icon {
-            width: 52px;
-
-            height: 52px;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            border-radius: 14px;
-
-            background:
-                rgba(0, 190, 255, 0.1);
-
-            font-size: 24px;
-
-            margin-bottom: 20px;
-        }
-
-        .card h3 {
-            margin-bottom: 12px;
-
-            font-size: 20px;
-        }
-
-        .card p {
-            color: #8497aa;
-
-            line-height: 1.7;
-
-            font-size: 14px;
-        }
-
-        /* SECURITY */
-
-        .security-box {
-            max-width: 1000px;
-
-            margin: auto;
-
-            padding: 45px;
-
-            border-radius: 25px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(0, 170, 255, 0.08),
-                    rgba(255,255,255,0.025)
-                );
-
-            border: 1px solid rgba(0, 200, 255, 0.16);
-        }
-
-        .security-box h2 {
-            font-size: 35px;
-
-            margin-bottom: 20px;
-        }
-
-        .security-box p {
-            color: #8da1b5;
-
-            line-height: 1.8;
-
-            margin-bottom: 25px;
-        }
-
-        .security-list {
-            display: grid;
-
-            grid-template-columns: repeat(2, 1fr);
-
-            gap: 15px;
-        }
-
-        .security-item {
-            padding: 18px;
-
-            border-radius: 12px;
-
-            background: rgba(0,0,0,0.2);
-
-            border: 1px solid rgba(255,255,255,0.06);
-
-            color: #c7d6e3;
-        }
-
-        .security-item strong {
-            color: #00d9ff;
-        }
-
-        /* DOWNLOAD */
-
-        .download {
-            text-align: center;
-
-            background:
-                radial-gradient(
-                    circle at center,
-                    rgba(0, 130, 255, 0.13),
-                    transparent 55%
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.25
                 );
         }
 
-        .download-box {
-            max-width: 750px;
-
-            margin: auto;
-
-            padding: 60px 30px;
-
-            border-radius: 28px;
-
-            border: 1px solid rgba(0, 210, 255, 0.15);
-
-            background: rgba(255,255,255,0.025);
-        }
-
-        .download-box h2 {
-            font-size: 42px;
+        .feature-icon {
+            font-size: 32px;
 
             margin-bottom: 15px;
         }
 
-        .download-box p {
-            color: #8398ab;
-
-            line-height: 1.7;
-
-            margin-bottom: 30px;
+        .feature h3 {
+            margin-bottom: 10px;
         }
 
-        .download-btn {
-            font-size: 17px;
+        .feature p {
+            color: #98a4b8;
 
-            padding: 17px 32px;
+            line-height: 1.6;
+
+            font-size: 14px;
         }
 
-        /* CONTACT */
+        /* DOWNLOAD */
 
-        .contact {
+        .download-section {
             text-align: center;
+
+            max-width: 900px;
+
+            margin: auto;
+
+            padding:
+                60px 30px;
+
+            border-radius: 20px;
+
+            background:
+                rgba(
+                    17,
+                    26,
+                    46,
+                    0.90
+                );
+
+            border:
+                1px solid
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.15
+                );
         }
 
-        .email {
-            display: inline-block;
+        .download-section p {
+            color: #aeb8ca;
 
-            margin-top: 20px;
+            margin:
+                15px auto 25px;
 
-            padding: 15px 25px;
+            line-height: 1.6;
+        }
 
-            border-radius: 12px;
+        .version {
+            color: #68748a;
 
-            color: #00d9ff;
+            font-size: 13px;
 
-            background: rgba(0, 200, 255, 0.06);
-
-            border: 1px solid rgba(0, 200, 255, 0.15);
-
-            text-decoration: none;
+            margin-top: 18px;
         }
 
         /* FOOTER */
 
         footer {
+            margin-top: 50px;
+
+            padding:
+                35px 20px;
+
             text-align: center;
 
-            padding: 35px 20px;
-
             border-top:
-                1px solid rgba(255,255,255,0.07);
+                1px solid
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.10
+                );
 
-            color: #56697b;
+            color: #68748a;
 
             font-size: 13px;
+
+            line-height: 1.8;
         }
 
-        footer span {
-            color: #00cfff;
-        }
-
-        .creator {
-            margin-top: 10px;
-
-            color: #71869a;
-
-            font-size: 12px;
-        }
-
-        .creator span {
-            color: #00cfff;
+        footer strong {
+            color: #aeb8ca;
         }
 
         /* MOBILE */
 
-        @media (max-width: 800px) {
+        @media (max-width: 650px) {
 
-            nav {
-                padding: 0 20px;
+            .navbar {
+                padding:
+                    16px 5%;
             }
 
-            nav ul {
-                display: none;
+            .nav-links {
+                gap: 12px;
             }
 
-            .features {
-                grid-template-columns: 1fr;
+            .nav-links a {
+                font-size: 12px;
             }
 
-            .security-list {
-                grid-template-columns: 1fr;
+            .hero {
+                padding:
+                    60px 5%;
             }
 
-            .hero h1 {
-                letter-spacing: -2px;
-            }
-
-            section {
-                padding: 75px 20px;
-            }
-
-            .security-box {
-                padding: 30px 22px;
+            .section {
+                padding:
+                    60px 5%;
             }
         }
     </style>
@@ -547,192 +389,186 @@
 
 <body>
 
+    <!-- ============================= -->
     <!-- NAVIGATION -->
+    <!-- ============================= -->
 
-    <nav>
+    <nav class="navbar">
 
-        <div class="brand">
+        <a
+            href="/"
+            class="brand"
+        >
+            🔐 VaultSecure
+        </a>
 
-            <div class="brand-icon"></div>
+        <div class="nav-links">
 
-            <span>VaultSecure</span>
+            <a href="#features">
+                Features
+            </a>
+
+            <a href="/forgot-password.html">
+                Forgot Password
+            </a>
 
         </div>
-
-        <ul>
-
-            <li>
-                <a href="#features">Features</a>
-            </li>
-
-            <li>
-                <a href="#security">Security</a>
-            </li>
-
-            <li>
-                <a href="#download">Download</a>
-            </li>
-
-            <li>
-                <a href="#contact">Contact</a>
-            </li>
-
-        </ul>
 
     </nav>
 
 
+    <!-- ============================= -->
     <!-- HERO -->
+    <!-- ============================= -->
 
     <section class="hero">
 
-        <div class="glow"></div>
+        <div class="hero-content">
 
-        <h1>
-            Your passwords.<br>
-            <span>Your vault.</span>
-        </h1>
+            <div class="lock-icon">
+                🔐
+            </div>
 
-        <p>
-            SecureVault is a modern password manager designed
-            to keep your credentials protected inside an
-            encrypted local vault.
-        </p>
+            <h1>
+                VaultSecure
+            </h1>
 
-        <div class="buttons">
+            <h2>
+                Your passwords. Your control.
+            </h2>
 
-            <a
-                href="#download"
-                class="btn primary"
-            >
-                ↓ Download SecureVault
-            </a>
+            <p>
+                SecureVault is a Windows password manager
+                designed to keep your credentials protected
+                in an encrypted local vault.
+            </p>
 
-            <a
-                href="#features"
-                class="btn secondary"
-            >
-                Explore Features
-            </a>
 
-        </div>
+            <div class="buttons">
 
-        <div class="version">
-            Windows • Free • Secure local storage
+                <!-- GITHUB RELEASE DOWNLOAD -->
+
+                <a
+                    href="https://github.com/mjaxjzif/Secure-Vault-FP/releases/latest/download/SecureVault.exe"
+                    class="btn primary"
+                >
+                    ⬇ Download for Windows
+                </a>
+
+
+                <!-- FORGOT PASSWORD -->
+
+                <a
+                    href="/forgot-password.html"
+                    class="btn secondary"
+                >
+                    🔑 Forgot Password
+                </a>
+
+            </div>
+
         </div>
 
     </section>
 
 
+    <!-- ============================= -->
     <!-- FEATURES -->
+    <!-- ============================= -->
 
-    <section id="features">
+    <section
+        class="section"
+        id="features"
+    >
 
-        <div class="section-title">
+        <h2>
+            SecureVault Features
+        </h2>
 
-            <h2>Built for your security</h2>
-
-            <p>
-                Everything you need to manage your passwords.
-            </p>
-
-        </div>
+        <p class="section-intro">
+            Tools designed to make password management
+            easier while keeping your vault protected.
+        </p>
 
 
         <div class="features">
 
-            <div class="card">
 
-                <div class="card-icon">
-                    🔐
+            <!-- FEATURE 1 -->
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    🔒
                 </div>
 
-                <h3>Encrypted Vault</h3>
+                <h3>
+                    Encrypted Vault
+                </h3>
 
                 <p>
-                    Your saved credentials are protected inside
-                    an encrypted vault instead of being stored
-                    as plain text.
+                    Your saved credentials are stored
+                    inside an encrypted local vault.
                 </p>
 
             </div>
 
 
-            <div class="card">
+            <!-- FEATURE 2 -->
 
-                <div class="card-icon">
-                    🔑
+            <div class="feature">
+
+                <div class="feature-icon">
+                    🎲
                 </div>
 
-                <h3>Password Generator</h3>
+                <h3>
+                    Password Generator
+                </h3>
 
                 <p>
-                    Generate strong random passwords whenever
-                    you create a new account.
+                    Generate strong random passwords
+                    whenever you need a new credential.
                 </p>
 
             </div>
 
 
-            <div class="card">
+            <!-- FEATURE 3 -->
 
-                <div class="card-icon">
+            <div class="feature">
+
+                <div class="feature-icon">
                     ⏱️
                 </div>
 
-                <h3>Auto Lock</h3>
+                <h3>
+                    Auto Lock
+                </h3>
 
                 <p>
-                    SecureVault can automatically lock your vault
+                    SecureVault automatically locks
                     after a period of inactivity.
                 </p>
 
             </div>
 
 
-            <div class="card">
+            <!-- FEATURE 4 -->
 
-                <div class="card-icon">
-                    🔎
+            <div class="feature">
+
+                <div class="feature-icon">
+                    🔑
                 </div>
 
-                <h3>Quick Search</h3>
+                <h3>
+                    Account Recovery
+                </h3>
 
                 <p>
-                    Quickly find saved accounts and credentials
-                    without searching through everything manually.
-                </p>
-
-            </div>
-
-
-            <div class="card">
-
-                <div class="card-icon">
-                    📋
-                </div>
-
-                <h3>Easy Copy</h3>
-
-                <p>
-                    Copy credentials when needed and automatically
-                    clear sensitive clipboard contents afterward.
-                </p>
-
-            </div>
-
-
-            <div class="card">
-
-                <div class="card-icon">
-                    🛡️
-                </div>
-
-                <h3>Recovery Key</h3>
-
-                <p>
-                    Keep a recovery key separately so your vault
-                    can have a secure recovery mechanism.
+                    Use the VaultSecure web recovery
+                    page for email verification.
                 </p>
 
             </div>
@@ -742,90 +578,34 @@
     </section>
 
 
-    <!-- SECURITY -->
+    <!-- ============================= -->
+    <!-- DOWNLOAD SECTION -->
+    <!-- ============================= -->
 
-    <section id="security">
+    <section class="section">
 
-        <div class="security-box">
+        <div class="download-section">
 
-            <h2>Security first.</h2>
-
-            <p>
-                SecureVault is designed around encrypted local
-                storage. Your master password is used to derive
-                the encryption key, while the vault contents
-                remain encrypted.
-            </p>
-
-
-            <div class="security-list">
-
-                <div class="security-item">
-
-                    <strong>✓</strong>
-                    AES-GCM encrypted vault
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <strong>✓</strong>
-                    Argon2 password-based key derivation
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <strong>✓</strong>
-                    Random encryption salt
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <strong>✓</strong>
-                    Random encryption nonce
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- DOWNLOAD -->
-
-    <section
-        id="download"
-        class="download"
-    >
-
-        <div class="download-box">
-
-            <h2>Get SecureVault</h2>
+            <h2>
+                Get SecureVault
+            </h2>
 
             <p>
-                Download SecureVault for Windows and start
-                protecting your passwords.
+                Download the Windows application and
+                start managing your passwords securely.
             </p>
 
 
             <a
-                href="SecureVault.exe"
-                download
-                class="btn primary download-btn"
+                href="https://github.com/mjaxjzif/Secure-Vault-FP/releases/latest/download/SecureVault.exe"
+                class="btn primary"
             >
-                ⬇ Download for Windows
+                ⬇ Download SecureVault.exe
             </a>
 
 
             <div class="version">
-                SecureVault for Windows
+                Windows • SecureVault v1.0.0
             </div>
 
         </div>
@@ -833,42 +613,22 @@
     </section>
 
 
-    <!-- CONTACT -->
-
-    <section
-        id="contact"
-        class="contact"
-    >
-
-        <div class="section-title">
-
-            <h2>Need help?</h2>
-
-            <p>
-                Contact the SecureVault team.
-            </p>
-
-            <a
-                class="email"
-                href="mailto:vaultsecure.app@gmail.com"
-            >
-                vaultsecure.app@gmail.com
-            </a>
-
-        </div>
-
-    </section>
-
-
+    <!-- ============================= -->
     <!-- FOOTER -->
+    <!-- ============================= -->
 
     <footer>
 
-        © 2026 <span>VaultSecure</span>.
-        SecureVault — Your data. Your control.
+        <div>
+            Web &amp; App made by
+            <strong>
+                Aadvik Vivek
+            </strong>
+        </div>
 
-        <div class="creator">
-            Web &amp; App made by <span>Aadvik Vivek</span>
+        <div>
+            © 2026 VaultSecure.
+            SecureVault — Your data. Your control.
         </div>
 
     </footer>

@@ -23,6 +23,7 @@ from crypto import encrypt_data, decrypt_data
 # ============================================================
 
 APP_NAME = "SecureVault"
+APP_VERSION = "1.1.0"
 
 VAULT_FILE = "vault.json"
 RECOVERY_META_FILE = "recovery_meta.json"
@@ -66,7 +67,10 @@ class SecureVault:
 
         self.root = root
 
-        self.root.title(APP_NAME)
+        self.root.title(
+            f"{APP_NAME} v{APP_VERSION}"
+        )
+
         self.root.geometry("1180x720")
         self.root.minsize(950, 620)
 
@@ -594,6 +598,20 @@ class SecureVault:
                 pady=4
             )
 
+        tk.Label(
+            branding,
+            text=f"Version {APP_VERSION}",
+            bg=self.BG,
+            fg="#58667a",
+            font=(
+                "Segoe UI",
+                9,
+                "bold"
+            )
+        ).pack(
+            pady=(25, 0)
+        )
+
         # RIGHT SIDE
 
         right = tk.Frame(
@@ -1070,6 +1088,7 @@ class SecureVault:
     def ensure_recovery_setup(self):
 
         if self.master_password is None:
+
             raise ValueError(
                 "Unlock your vault first."
             )
@@ -1119,14 +1138,8 @@ class SecureVault:
                 "email"
             ] = email
 
-        else:
-
-            email = email
-
         self.save()
 
-        # Always make sure local recovery metadata exists
-        # and matches this recovery key.
         self.create_recovery_metadata(
             email,
             self.master_password,
@@ -1743,7 +1756,7 @@ class SecureVault:
                 32
             )
         ).pack(
-            pady=(28, 5)
+            pady=(25, 5)
         )
 
         tk.Label(
@@ -1760,7 +1773,7 @@ class SecureVault:
 
         tk.Label(
             sidebar,
-            text="PASSWORD MANAGER",
+            text=f"VERSION {APP_VERSION}",
             bg=self.PANEL,
             fg="#64728a",
             font=(
@@ -1769,7 +1782,21 @@ class SecureVault:
                 "bold"
             )
         ).pack(
-            pady=(2, 30)
+            pady=(2, 6)
+        )
+
+        tk.Label(
+            sidebar,
+            text="PASSWORD MANAGER",
+            bg=self.PANEL,
+            fg="#536177",
+            font=(
+                "Segoe UI",
+                7,
+                "bold"
+            )
+        ).pack(
+            pady=(0, 27)
         )
 
         self.sidebar_button(
@@ -1790,10 +1817,6 @@ class SecureVault:
             "⚙   Password Generator",
             self.password_generator
         )
-
-        # ----------------------------------------------------
-        # NEW RECOVERY KEY BUTTON
-        # ----------------------------------------------------
 
         self.sidebar_button(
             sidebar,
@@ -1898,6 +1921,22 @@ class SecureVault:
         ).pack(
             side="left",
             padx=14,
+            pady=(10, 0)
+        )
+
+        tk.Label(
+            header,
+            text=f"v{APP_VERSION}",
+            bg=self.BG,
+            fg="#5d6d83",
+            font=(
+                "Segoe UI",
+                9,
+                "bold"
+            )
+        ).pack(
+            side="right",
+            padx=(0, 15),
             pady=(10, 0)
         )
 

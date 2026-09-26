@@ -13,13 +13,28 @@ from crypto import encrypt_data, decrypt_data
 VAULT_FILE = "vault.json"
 AUTO_LOCK_TIME = 300
 
+FORGOT_PASSWORD_URL = (
+    "https://securevaultreal.vercel.app/forgot-password.html"
+)
+
+
+# ============================================================
+# SECUREVAULT
+# ============================================================
 
 class SecureVault:
+
     def __init__(self, root):
+
         self.root = root
+
         self.root.title("SecureVault")
-        self.root.geometry("950x650")
-        self.root.minsize(800, 550)
+        self.root.geometry("1180x720")
+        self.root.minsize(950, 620)
+
+        self.root.configure(
+            bg="#070b14"
+        )
 
         self.master_password = None
 
@@ -29,12 +44,20 @@ class SecureVault:
         }
 
         self.recovery_key = None
+
         self.last_activity = time.time()
 
-        self.setup_style()
+        self.setup_styles()
 
-        self.root.bind_all("<Key>", self.reset_timer)
-        self.root.bind_all("<Button>", self.reset_timer)
+        self.root.bind_all(
+            "<Key>",
+            self.reset_timer
+        )
+
+        self.root.bind_all(
+            "<Button>",
+            self.reset_timer
+        )
 
         self.root.protocol(
             "WM_DELETE_WINDOW",
@@ -42,13 +65,36 @@ class SecureVault:
         )
 
         self.check_lock()
+
         self.login_screen()
 
-    # =========================
-    # STYLE
-    # =========================
 
-    def setup_style(self):
+    # ========================================================
+    # COLORS
+    # ========================================================
+
+    BG = "#070b14"
+    PANEL = "#0d1422"
+    PANEL_2 = "#111a2b"
+    PANEL_3 = "#172238"
+
+    TEXT = "#f4f7fb"
+    MUTED = "#8b98ad"
+
+    CYAN = "#61dafb"
+    BLUE = "#4f9cff"
+
+    GREEN = "#63e6be"
+    RED = "#ff6b81"
+    YELLOW = "#ffd166"
+
+
+    # ========================================================
+    # STYLE
+    # ========================================================
+
+    def setup_styles(self):
+
         style = ttk.Style()
 
         try:
@@ -58,35 +104,164 @@ class SecureVault:
 
         style.configure(
             "TButton",
-            font=("Segoe UI", 10, "bold"),
-            padding=9
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+            padding=10,
+
+            background=self.PANEL_3,
+            foreground=self.TEXT,
+
+            borderwidth=0
+        )
+
+        style.map(
+            "TButton",
+
+            background=[
+                (
+                    "active",
+                    "#20314d"
+                )
+            ]
+        )
+
+        style.configure(
+            "Accent.TButton",
+
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+
+            padding=11,
+
+            background=self.CYAN,
+            foreground="#061018",
+
+            borderwidth=0
+        )
+
+        style.map(
+            "Accent.TButton",
+
+            background=[
+                (
+                    "active",
+                    "#8be8ff"
+                )
+            ]
+        )
+
+        style.configure(
+            "Danger.TButton",
+
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+
+            padding=10,
+
+            background="#321827",
+            foreground="#ff9aaa",
+
+            borderwidth=0
         )
 
         style.configure(
             "TEntry",
-            padding=8,
-            font=("Segoe UI", 11)
+
+            padding=9,
+
+            font=(
+                "Segoe UI",
+                11
+            ),
+
+            fieldbackground="#101a2b",
+            foreground=self.TEXT,
+
+            insertcolor=self.CYAN
         )
 
         style.configure(
             "Treeview",
-            font=("Segoe UI", 10),
-            rowheight=36
+
+            background=self.PANEL,
+            fieldbackground=self.PANEL,
+            foreground=self.TEXT,
+
+            font=(
+                "Segoe UI",
+                10
+            ),
+
+            rowheight=42,
+
+            borderwidth=0
         )
 
         style.configure(
             "Treeview.Heading",
-            font=("Segoe UI", 10, "bold")
+
+            background="#141f33",
+            foreground="#9fb0c8",
+
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+
+            padding=10,
+
+            borderwidth=0
         )
 
+        style.map(
+            "Treeview",
+
+            background=[
+                (
+                    "selected",
+                    "#183652"
+                )
+            ],
+
+            foreground=[
+                (
+                    "selected",
+                    "white"
+                )
+            ]
+        )
+
+
+    # ========================================================
+    # TIMER
+    # ========================================================
+
     def reset_timer(self, event=None):
-        self.last_activity = time.time()
+
+        if self.master_password is not None:
+            self.last_activity = time.time()
+
 
     def check_lock(self):
+
         if (
             self.master_password is not None
-            and time.time() - self.last_activity >= AUTO_LOCK_TIME
+            and
+            time.time()
+            - self.last_activity
+            >= AUTO_LOCK_TIME
         ):
+
             self.lock()
 
         self.root.after(
@@ -94,100 +269,268 @@ class SecureVault:
             self.check_lock
         )
 
-    # =========================
+
+    # ========================================================
     # HELPERS
-    # =========================
+    # ========================================================
 
     def clear(self):
+
         for widget in self.root.winfo_children():
             widget.destroy()
 
-    def password_toggle(self, entry, button):
-        if entry.cget("show") == "":
-            entry.config(show="•")
-            button.config(text="Show")
-        else:
-            entry.config(show="")
-            button.config(text="Hide")
 
-    # =========================
-    # LOGIN SCREEN
-    # =========================
+    def make_label(
+        self,
+        parent,
+        text,
+        size=10,
+        weight="normal",
+        color=None
+    ):
 
-    def login_screen(self):
-        self.clear()
-        self.root.configure(bg="#0b1020")
+        return tk.Label(
+            parent,
+            text=text,
 
-        box = tk.Frame(
-            self.root,
-            bg="#111a2e"
+            bg=parent.cget("bg"),
+
+            fg=color or self.TEXT,
+
+            font=(
+                "Segoe UI",
+                size,
+                weight
+            )
         )
 
-        box.place(
+
+    def password_toggle(
+        self,
+        entry,
+        button
+    ):
+
+        if entry.cget("show") == "":
+
+            entry.config(
+                show="•"
+            )
+
+            button.config(
+                text="Show"
+            )
+
+        else:
+
+            entry.config(
+                show=""
+            )
+
+            button.config(
+                text="Hide"
+            )
+
+
+    # ========================================================
+    # LOGIN
+    # ========================================================
+
+    def login_screen(self):
+
+        self.clear()
+
+        self.root.configure(
+            bg=self.BG
+        )
+
+        outer = tk.Frame(
+            self.root,
+            bg=self.BG
+        )
+
+        outer.pack(
+            fill="both",
+            expand=True
+        )
+
+        # Left branding area
+
+        left = tk.Frame(
+            outer,
+            bg=self.BG
+        )
+
+        left.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+
+        brand_box = tk.Frame(
+            left,
+            bg=self.BG
+        )
+
+        brand_box.place(
             relx=0.5,
             rely=0.5,
             anchor="center"
         )
 
         tk.Label(
-            box,
+            brand_box,
             text="🔐",
-            font=("Segoe UI Emoji", 45),
-            bg="#111a2e",
-            fg="white"
+            bg=self.BG,
+            fg=self.CYAN,
+            font=(
+                "Segoe UI Emoji",
+                60
+            )
         ).pack(
-            pady=(30, 0)
+            pady=(0, 15)
         )
 
         tk.Label(
-            box,
+            brand_box,
             text="SecureVault",
-            font=("Segoe UI", 30, "bold"),
-            bg="#111a2e",
-            fg="#61dafb"
+            bg=self.BG,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                38,
+                "bold"
+            )
         ).pack()
 
         tk.Label(
-            box,
-            text="Secure password management",
-            font=("Segoe UI", 11),
-            bg="#111a2e",
-            fg="#aeb8ca"
+            brand_box,
+            text="Your passwords. Your control.",
+            bg=self.BG,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                12
+            )
         ).pack(
-            pady=(0, 25)
+            pady=(8, 25)
         )
 
-        if os.path.exists(VAULT_FILE):
-            self.existing_login(box)
-        else:
-            self.new_vault_login(box)
+        feature_text = [
+            "🔒  Encrypted local vault",
+            "🎲  Strong password generator",
+            "⏱  Automatic locking",
+            "🔑  Account recovery"
+        ]
 
-    def existing_login(self, box):
+        for text in feature_text:
+
+            tk.Label(
+                brand_box,
+                text=text,
+                bg=self.BG,
+                fg="#aab6c8",
+                font=(
+                    "Segoe UI",
+                    10
+                )
+            ).pack(
+                anchor="w",
+                pady=4
+            )
+
+        # Right login panel
+
+        right = tk.Frame(
+            outer,
+            bg=self.PANEL
+        )
+
+        right.pack(
+            side="right",
+            fill="both",
+            expand=True
+        )
+
+        card = tk.Frame(
+            right,
+            bg=self.PANEL
+        )
+
+        card.place(
+            relx=0.5,
+            rely=0.5,
+            anchor="center"
+        )
+
         tk.Label(
-            box,
-            text="Master Password",
-            bg="#111a2e",
-            fg="white",
-            font=("Segoe UI", 11, "bold")
+            card,
+            text=(
+                "Welcome back"
+                if os.path.exists(VAULT_FILE)
+                else
+                "Create your vault"
+            ),
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                25,
+                "bold"
+            )
+        ).pack(
+            anchor="w"
+        )
+
+        tk.Label(
+            card,
+            text=(
+                "Unlock your encrypted password vault."
+                if os.path.exists(VAULT_FILE)
+                else
+                "Choose a strong master password."
+            ),
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                10
+            )
         ).pack(
             anchor="w",
-            padx=40
+            pady=(6, 25)
+        )
+
+        tk.Label(
+            card,
+            text=(
+                "MASTER PASSWORD"
+            ),
+            bg=self.PANEL,
+            fg="#8ea0b9",
+            font=(
+                "Segoe UI",
+                9,
+                "bold"
+            )
+        ).pack(
+            anchor="w"
         )
 
         row = tk.Frame(
-            box,
-            bg="#111a2e"
+            card,
+            bg=self.PANEL
         )
 
         row.pack(
             fill="x",
-            padx=40,
-            pady=8
+            pady=(8, 12)
         )
 
         self.password_entry = ttk.Entry(
             row,
-            show="•"
+            show="•",
+            width=35
         )
 
         self.password_entry.pack(
@@ -196,125 +539,131 @@ class SecureVault:
             expand=True
         )
 
-        show = ttk.Button(
+        show = tk.Button(
             row,
             text="Show",
-            command=lambda: self.password_toggle(
-                self.password_entry,
-                show
-            )
+            command=lambda:
+                self.password_toggle(
+                    self.password_entry,
+                    show
+                ),
+            bg=self.PANEL_2,
+            fg=self.CYAN,
+            activebackground=self.PANEL_2,
+            activeforeground="white",
+            bd=0,
+            padx=12,
+            cursor="hand2"
         )
 
         show.pack(
             side="right",
-            padx=(6, 0)
+            padx=(8, 0)
         )
 
-        ttk.Button(
-            box,
-            text="🔓 Unlock Vault",
-            command=self.unlock
-        ).pack(
-            fill="x",
-            padx=40,
-            pady=8
-        )
+        if os.path.exists(VAULT_FILE):
 
-        tk.Button(
-            box,
-            text="Forgot Password?",
-            command=self.forgot_password,
-            bg="#111a2e",
-            fg="#61dafb",
-            activebackground="#111a2e",
-            activeforeground="white",
-            bd=0,
-            cursor="hand2",
-            font=("Segoe UI", 10, "underline")
-        ).pack(
-            pady=5
-        )
+            ttk.Button(
+                card,
+                text="🔓  Unlock Vault",
+                style="Accent.TButton",
+                command=self.unlock
+            ).pack(
+                fill="x"
+            )
 
-        tk.Label(
-            box,
-            text="Automatically locks after 5 minutes",
-            bg="#111a2e",
-            fg="#68748a",
-            font=("Segoe UI", 9)
-        ).pack(
-            pady=(5, 30)
-        )
+            tk.Button(
+                card,
+                text="Forgot Password?",
+                command=self.forgot_password,
+                bg=self.PANEL,
+                fg=self.CYAN,
+                activebackground=self.PANEL,
+                activeforeground="white",
+                bd=0,
+                cursor="hand2",
+                font=(
+                    "Segoe UI",
+                    10,
+                    "underline"
+                )
+            ).pack(
+                pady=(16, 6)
+            )
 
-        self.password_entry.focus()
+            tk.Label(
+                card,
+                text="Auto-lock after 5 minutes of inactivity",
+                bg=self.PANEL,
+                fg="#617087",
+                font=(
+                    "Segoe UI",
+                    9
+                )
+            ).pack()
 
-    def new_vault_login(self, box):
-        tk.Label(
-            box,
-            text="Create a Master Password",
-            bg="#111a2e",
-            fg="white",
-            font=("Segoe UI", 11, "bold")
-        ).pack(
-            anchor="w",
-            padx=40
-        )
+            self.password_entry.focus()
 
-        self.password_entry = ttk.Entry(
-            box,
-            show="•"
-        )
+        else:
 
-        self.password_entry.pack(
-            fill="x",
-            padx=40,
-            pady=10
-        )
+            ttk.Button(
+                card,
+                text="🔐  Create SecureVault",
+                style="Accent.TButton",
+                command=self.create_vault
+            ).pack(
+                fill="x"
+            )
 
-        ttk.Button(
-            box,
-            text="🔐 Create Vault",
-            command=self.create_vault
-        ).pack(
-            fill="x",
-            padx=40,
-            pady=8
-        )
+            tk.Label(
+                card,
+                text="Use at least 10 characters.",
+                bg=self.PANEL,
+                fg="#617087",
+                font=(
+                    "Segoe UI",
+                    9
+                )
+            ).pack(
+                pady=(12, 0)
+            )
 
-        tk.Label(
-            box,
-            text="Use at least 10 characters.",
-            bg="#111a2e",
-            fg="#68748a",
-            font=("Segoe UI", 9)
-        ).pack(
-            pady=(5, 30)
-        )
+            self.password_entry.focus()
 
-    # =========================
+
+    # ========================================================
     # CREATE VAULT
-    # =========================
+    # ========================================================
 
     def create_vault(self):
+
         password = self.password_entry.get()
 
         if len(password) < 10:
+
             messagebox.showwarning(
                 "Password Too Short",
                 "Use at least 10 characters."
             )
+
             return
 
         confirm = self.confirm_password()
 
         if confirm != password:
+
             messagebox.showerror(
-                "Mismatch",
+                "Passwords Do Not Match",
                 "The passwords do not match."
             )
+
             return
 
         self.master_password = password
-        self.recovery_key = self.generate_recovery_key()
+
+        self.recovery_key = (
+            self.generate_recovery_key()
+        )
 
         self.vault = {
             "accounts": [],
@@ -326,24 +675,45 @@ class SecureVault:
 
         self.recovery_screen()
 
+
     def confirm_password(self):
-        window = tk.Toplevel(self.root)
-        window.title("Confirm Password")
-        window.geometry("400x220")
-        window.configure(bg="#111a2e")
-        window.transient(self.root)
+
+        window = tk.Toplevel(
+            self.root
+        )
+
+        window.title(
+            "Confirm Master Password"
+        )
+
+        window.geometry(
+            "430x250"
+        )
+
+        window.configure(
+            bg=self.PANEL
+        )
+
+        window.transient(
+            self.root
+        )
+
         window.grab_set()
 
         result = [None]
 
         tk.Label(
             window,
-            text="Confirm Master Password",
-            bg="#111a2e",
-            fg="white",
-            font=("Segoe UI", 15, "bold")
+            text="Confirm Password",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                18,
+                "bold"
+            )
         ).pack(
-            pady=20
+            pady=(28, 18)
         )
 
         entry = ttk.Entry(
@@ -352,111 +722,150 @@ class SecureVault:
         )
 
         entry.pack(
-            padx=30,
+            padx=35,
             fill="x"
         )
 
         def done():
+
             result[0] = entry.get()
+
             window.destroy()
 
         ttk.Button(
             window,
             text="Confirm",
+            style="Accent.TButton",
             command=done
         ).pack(
-            pady=20
+            fill="x",
+            padx=35,
+            pady=22
         )
 
         entry.focus()
 
-        self.root.wait_window(window)
+        self.root.wait_window(
+            window
+        )
 
         return result[0]
 
-    # =========================
+
+    # ========================================================
     # RECOVERY KEY
-    # =========================
+    # ========================================================
 
     def generate_recovery_key(self):
-        chars = string.ascii_uppercase + string.digits
 
-        parts = []
-
-        for _ in range(4):
-            parts.append(
-                "".join(
-                    secrets.choice(chars)
-                    for _ in range(6)
-                )
-            )
-
-        return "-".join(parts)
-
-    def recovery_screen(self):
-        self.clear()
-        self.root.configure(bg="#0b1020")
-
-        box = tk.Frame(
-            self.root,
-            bg="#111a2e"
+        chars = (
+            string.ascii_uppercase
+            +
+            string.digits
         )
 
-        box.place(
+        return "-".join(
+            "".join(
+                secrets.choice(chars)
+                for _ in range(6)
+            )
+            for _ in range(4)
+        )
+
+
+    def recovery_screen(self):
+
+        self.clear()
+
+        self.root.configure(
+            bg=self.BG
+        )
+
+        card = tk.Frame(
+            self.root,
+            bg=self.PANEL
+        )
+
+        card.place(
             relx=0.5,
             rely=0.5,
             anchor="center"
         )
 
         tk.Label(
-            box,
-            text="🔑 Recovery Key",
-            bg="#111a2e",
-            fg="#61dafb",
-            font=("Segoe UI", 25, "bold")
+            card,
+            text="🔑",
+            bg=self.PANEL,
+            fg=self.CYAN,
+            font=(
+                "Segoe UI Emoji",
+                45
+            )
         ).pack(
-            pady=(30, 10)
+            pady=(28, 5)
         )
 
         tk.Label(
-            box,
+            card,
+            text="Your Recovery Key",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                24,
+                "bold"
+            )
+        ).pack()
+
+        tk.Label(
+            card,
             text=(
                 "Save this key somewhere safe.\n"
-                "It is required for account recovery."
+                "You may need it to recover your account."
             ),
-            bg="#111a2e",
-            fg="white",
+            bg=self.PANEL,
+            fg=self.MUTED,
             justify="center",
-            font=("Segoe UI", 11)
+            font=(
+                "Segoe UI",
+                10
+            )
         ).pack(
-            pady=10
+            pady=12
         )
 
-        key = tk.Entry(
-            box,
-            width=32,
+        key_box = tk.Entry(
+            card,
+            width=34,
             justify="center",
-            font=("Consolas", 14, "bold"),
-            bg="#18243a",
-            fg="#61dafb",
-            readonlybackground="#18243a"
+            font=(
+                "Consolas",
+                14,
+                "bold"
+            ),
+            bg=self.PANEL_2,
+            fg=self.CYAN,
+            readonlybackground=self.PANEL_2,
+            bd=0
         )
 
-        key.insert(
+        key_box.insert(
             0,
             self.recovery_key
         )
 
-        key.config(
+        key_box.config(
             state="readonly"
         )
 
-        key.pack(
-            padx=40,
-            pady=15
+        key_box.pack(
+            padx=35,
+            pady=16,
+            ipady=9
         )
 
         def copy():
+
             self.root.clipboard_clear()
 
             self.root.clipboard_append(
@@ -467,8 +876,8 @@ class SecureVault:
 
             messagebox.showinfo(
                 "Copied",
-                "Recovery key copied.\n"
-                "The clipboard will clear in 15 seconds."
+                "Recovery key copied.\n\n"
+                "Clipboard will be cleared in 15 seconds."
             )
 
             self.root.after(
@@ -477,42 +886,50 @@ class SecureVault:
             )
 
         ttk.Button(
-            box,
-            text="📋 Copy Recovery Key",
+            card,
+            text="📋  Copy Recovery Key",
             command=copy
         ).pack(
             fill="x",
-            padx=40,
+            padx=35,
             pady=5
         )
 
         ttk.Button(
-            box,
-            text="Continue to SecureVault",
+            card,
+            text="Continue to SecureVault  →",
+            style="Accent.TButton",
             command=self.dashboard
         ).pack(
             fill="x",
-            padx=40,
-            pady=(5, 30)
+            padx=35,
+            pady=(5, 28)
         )
 
-    # =========================
+
+    # ========================================================
     # ENCRYPTION
-    # =========================
+    # ========================================================
 
     def save(self):
+
         encrypted = encrypt_data(
             self.vault,
             self.master_password
         )
 
-        temporary = VAULT_FILE + ".tmp"
+        temporary = (
+            VAULT_FILE
+            +
+            ".tmp"
+        )
 
         with open(
             temporary,
             "w",
             encoding="utf-8"
         ) as file:
+
             json.dump(
                 encrypted,
                 file
@@ -523,18 +940,22 @@ class SecureVault:
             VAULT_FILE
         )
 
+
     def unlock(self):
+
         password = self.password_entry.get()
 
         if not password:
             return
 
         try:
+
             with open(
                 VAULT_FILE,
                 "r",
                 encoding="utf-8"
             ) as file:
+
                 encrypted = json.load(file)
 
             self.vault = decrypt_data(
@@ -543,11 +964,13 @@ class SecureVault:
             )
 
             self.master_password = password
+
             self.last_activity = time.time()
 
             self.dashboard()
 
         except Exception:
+
             messagebox.showerror(
                 "Access Denied",
                 "Incorrect master password."
@@ -558,104 +981,398 @@ class SecureVault:
                 tk.END
             )
 
-    # =========================
+
+    # ========================================================
     # DASHBOARD
-    # =========================
+    # ========================================================
 
     def dashboard(self):
+
         self.clear()
-        self.root.configure(bg="#0b1020")
+
+        self.root.configure(
+            bg=self.BG
+        )
+
+        # -------------------------
+        # Sidebar
+        # -------------------------
+
+        sidebar = tk.Frame(
+            self.root,
+            bg=self.PANEL,
+            width=230
+        )
+
+        sidebar.pack(
+            side="left",
+            fill="y"
+        )
+
+        sidebar.pack_propagate(
+            False
+        )
+
+        tk.Label(
+            sidebar,
+            text="🔐",
+            bg=self.PANEL,
+            fg=self.CYAN,
+            font=(
+                "Segoe UI Emoji",
+                32
+            )
+        ).pack(
+            pady=(28, 5)
+        )
+
+        tk.Label(
+            sidebar,
+            text="SecureVault",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                16,
+                "bold"
+            )
+        ).pack()
+
+        tk.Label(
+            sidebar,
+            text="PASSWORD MANAGER",
+            bg=self.PANEL,
+            fg="#64728a",
+            font=(
+                "Segoe UI",
+                8,
+                "bold"
+            )
+        ).pack(
+            pady=(2, 35)
+        )
+
+        self.sidebar_button(
+            sidebar,
+            "▣   My Vault",
+            self.dashboard,
+            active=True
+        )
+
+        self.sidebar_button(
+            sidebar,
+            "＋   Add Account",
+            self.account_window
+        )
+
+        self.sidebar_button(
+            sidebar,
+            "⚙   Password Generator",
+            self.password_generator
+        )
+
+        spacer = tk.Frame(
+            sidebar,
+            bg=self.PANEL
+        )
+
+        spacer.pack(
+            fill="both",
+            expand=True
+        )
+
+        lock_btn = tk.Button(
+            sidebar,
+            text="🔒   Lock Vault",
+            command=self.lock,
+            bg="#1a2538",
+            fg="#aab9cc",
+            activebackground="#253650",
+            activeforeground="white",
+            bd=0,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+            pady=12
+        )
+
+        lock_btn.pack(
+            fill="x",
+            padx=18,
+            pady=(10, 6)
+        )
+
+        tk.Label(
+            sidebar,
+            text="Protected by encryption",
+            bg=self.PANEL,
+            fg="#57657b",
+            font=(
+                "Segoe UI",
+                8
+            )
+        ).pack(
+            pady=(3, 20)
+        )
+
+        # -------------------------
+        # Main
+        # -------------------------
+
+        main = tk.Frame(
+            self.root,
+            bg=self.BG
+        )
+
+        main.pack(
+            side="right",
+            fill="both",
+            expand=True
+        )
+
+        # Header
 
         header = tk.Frame(
-            self.root,
-            bg="#111a2e"
+            main,
+            bg=self.BG
         )
 
         header.pack(
-            fill="x"
-        )
-
-        tk.Label(
-            header,
-            text="🔐 SecureVault",
-            bg="#111a2e",
-            fg="#61dafb",
-            font=("Segoe UI", 23, "bold")
-        ).pack(
-            side="left",
-            padx=25,
-            pady=20
-        )
-
-        ttk.Button(
-            header,
-            text="🔒 Lock",
-            command=self.lock
-        ).pack(
-            side="right",
-            padx=25
-        )
-
-        search = tk.Frame(
-            self.root,
-            bg="#0b1020"
-        )
-
-        search.pack(
             fill="x",
-            padx=25,
-            pady=20
+            padx=30,
+            pady=(25, 5)
         )
 
         tk.Label(
-            search,
-            text="🔎",
-            bg="#0b1020",
-            fg="white",
-            font=("Segoe UI", 15)
+            header,
+            text="My Vault",
+            bg=self.BG,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                26,
+                "bold"
+            )
         ).pack(
             side="left"
         )
 
-        self.search_entry = ttk.Entry(
-            search
-        )
-
-        self.search_entry.pack(
+        tk.Label(
+            header,
+            text="Secure credential storage",
+            bg=self.BG,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                10
+            )
+        ).pack(
             side="left",
-            fill="x",
-            expand=True,
-            padx=10
-        )
-
-        self.search_entry.bind(
-            "<KeyRelease>",
-            lambda event: self.refresh()
+            padx=14,
+            pady=(10, 0)
         )
 
         ttk.Button(
-            search,
+            header,
             text="＋ Add Account",
+            style="Accent.TButton",
             command=self.account_window
         ).pack(
             side="right"
         )
 
-        table = tk.Frame(
-            self.root,
-            bg="#0b1020"
+        # -------------------------
+        # Stats
+        # -------------------------
+
+        stats = tk.Frame(
+            main,
+            bg=self.BG
         )
 
-        table.pack(
+        stats.pack(
+            fill="x",
+            padx=30,
+            pady=20
+        )
+
+        accounts = len(
+            self.vault.get(
+                "accounts",
+                []
+            )
+        )
+
+        stats_data = [
+            (
+                "🔐",
+                "Saved Accounts",
+                str(accounts)
+            ),
+            (
+                "🛡",
+                "Vault Status",
+                "Protected"
+            ),
+            (
+                "⏱",
+                "Auto Lock",
+                "5 minutes"
+            )
+        ]
+
+        for icon, title, value in stats_data:
+
+            card = tk.Frame(
+                stats,
+                bg=self.PANEL,
+                height=88
+            )
+
+            card.pack(
+                side="left",
+                fill="x",
+                expand=True,
+                padx=(0, 10)
+            )
+
+            card.pack_propagate(
+                False
+            )
+
+            tk.Label(
+                card,
+                text=icon,
+                bg=self.PANEL,
+                fg=self.CYAN,
+                font=(
+                    "Segoe UI Emoji",
+                    20
+                )
+            ).pack(
+                side="left",
+                padx=(16, 11)
+            )
+
+            text = tk.Frame(
+                card,
+                bg=self.PANEL
+            )
+
+            text.pack(
+                side="left"
+            )
+
+            tk.Label(
+                text,
+                text=title,
+                bg=self.PANEL,
+                fg="#738197",
+                font=(
+                    "Segoe UI",
+                    8,
+                    "bold"
+                )
+            ).pack(
+                anchor="w"
+            )
+
+            tk.Label(
+                text,
+                text=value,
+                bg=self.PANEL,
+                fg=self.TEXT,
+                font=(
+                    "Segoe UI",
+                    12,
+                    "bold"
+                )
+            ).pack(
+                anchor="w"
+            )
+
+        # -------------------------
+        # Search
+        # -------------------------
+
+        search_frame = tk.Frame(
+            main,
+            bg=self.BG
+        )
+
+        search_frame.pack(
+            fill="x",
+            padx=30,
+            pady=(0, 12)
+        )
+
+        search_icon = tk.Label(
+            search_frame,
+            text="🔎",
+            bg=self.PANEL_2,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI Emoji",
+                12
+            )
+        )
+
+        search_icon.pack(
+            side="left",
+            ipadx=12,
+            ipady=8
+        )
+
+        self.search_entry = ttk.Entry(
+            search_frame
+        )
+
+        self.search_entry.pack(
+            side="left",
+            fill="x",
+            expand=True
+        )
+
+        self.search_entry.insert(
+            0,
+            ""
+        )
+
+        self.search_entry.bind(
+            "<KeyRelease>",
+            lambda event:
+                self.refresh()
+        )
+
+        # -------------------------
+        # Table
+        # -------------------------
+
+        table_frame = tk.Frame(
+            main,
+            bg=self.PANEL
+        )
+
+        table_frame.pack(
             fill="both",
             expand=True,
-            padx=25
+            padx=30,
+            pady=(0, 15)
+        )
+
+        columns = (
+            "site",
+            "username"
         )
 
         self.tree = ttk.Treeview(
-            table,
-            columns=("site", "username"),
-            show="headings"
+            table_frame,
+            columns=columns,
+            show="headings",
+            selectmode="browse"
         )
 
         self.tree.heading(
@@ -670,16 +1387,18 @@ class SecureVault:
 
         self.tree.column(
             "site",
-            width=350
+            width=360,
+            anchor="w"
         )
 
         self.tree.column(
             "username",
-            width=450
+            width=430,
+            anchor="w"
         )
 
         scrollbar = ttk.Scrollbar(
-            table,
+            table_frame,
             orient="vertical",
             command=self.tree.yview
         )
@@ -701,75 +1420,162 @@ class SecureVault:
 
         self.tree.bind(
             "<Double-1>",
-            lambda event: self.view_account()
+            lambda event:
+                self.view_account()
         )
 
-        bottom = tk.Frame(
-            self.root,
-            bg="#0b1020"
+        # -------------------------
+        # Bottom controls
+        # -------------------------
+
+        controls = tk.Frame(
+            main,
+            bg=self.BG
         )
 
-        bottom.pack(
+        controls.pack(
             fill="x",
-            padx=25,
-            pady=20
+            padx=30,
+            pady=(0, 22)
         )
 
         ttk.Button(
-            bottom,
+            controls,
             text="View",
             command=self.view_account
         ).pack(
             side="left",
-            padx=4
+            padx=(0, 6)
         )
 
         ttk.Button(
-            bottom,
+            controls,
             text="Edit",
             command=self.edit_account
         ).pack(
             side="left",
-            padx=4
+            padx=6
         )
 
         ttk.Button(
-            bottom,
+            controls,
             text="Delete",
+            style="Danger.TButton",
             command=self.delete_account
         ).pack(
             side="left",
-            padx=4
+            padx=6
         )
 
-        ttk.Button(
-            bottom,
-            text="🎲 Password Generator",
-            command=self.password_generator
+        tk.Label(
+            controls,
+            text="Double-click an account to open it",
+            bg=self.BG,
+            fg="#59677d",
+            font=(
+                "Segoe UI",
+                9
+            )
         ).pack(
-            side="right",
-            padx=4
+            side="right"
         )
 
         self.refresh()
 
-    # =========================
+
+    def sidebar_button(
+        self,
+        parent,
+        text,
+        command,
+        active=False
+    ):
+
+        bg = (
+            "#18364a"
+            if active
+            else self.PANEL
+        )
+
+        fg = (
+            self.CYAN
+            if active
+            else "#8998ad"
+        )
+
+        button = tk.Button(
+            parent,
+            text=text,
+            command=command,
+
+            anchor="w",
+
+            bg=bg,
+            fg=fg,
+
+            activebackground="#1b3149",
+            activeforeground=self.CYAN,
+
+            bd=0,
+
+            cursor="hand2",
+
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+
+            padx=20,
+            pady=13
+        )
+
+        button.pack(
+            fill="x",
+            padx=10,
+            pady=3
+        )
+
+
+    # ========================================================
     # REFRESH
-    # =========================
+    # ========================================================
 
     def refresh(self):
-        if not hasattr(self, "tree"):
+
+        if not hasattr(
+            self,
+            "tree"
+        ):
             return
 
         for item in self.tree.get_children():
-            self.tree.delete(item)
 
-        search = self.search_entry.get().lower()
+            self.tree.delete(
+                item
+            )
+
+        search = ""
+
+        if hasattr(
+            self,
+            "search_entry"
+        ):
+            search = (
+                self.search_entry
+                .get()
+                .lower()
+                .strip()
+            )
 
         for index, account in enumerate(
-            self.vault.get("accounts", [])
+            self.vault.get(
+                "accounts",
+                []
+            )
         ):
-            site = account.get(
+
+            website = account.get(
                 "website",
                 ""
             )
@@ -780,90 +1586,177 @@ class SecureVault:
             )
 
             if (
-                search in site.lower()
-                or search in username.lower()
+                search
+                and
+                search not in website.lower()
+                and
+                search not in username.lower()
             ):
-                self.tree.insert(
-                    "",
-                    "end",
-                    iid=str(index),
-                    values=(
-                        site,
-                        username
-                    )
+                continue
+
+            self.tree.insert(
+                "",
+                "end",
+
+                iid=str(index),
+
+                values=(
+                    website,
+                    username
                 )
+            )
 
-    # =========================
+
+    # ========================================================
     # ACCOUNT WINDOW
-    # =========================
+    # ========================================================
 
-    def account_window(self, index=None):
-        editing = index is not None
+    def account_window(
+        self,
+        index=None
+    ):
 
-        window = tk.Toplevel(self.root)
+        editing = (
+            index is not None
+        )
+
+        window = tk.Toplevel(
+            self.root
+        )
 
         window.title(
             "Edit Account"
             if editing
-            else "Add Account"
+            else
+            "Add Account"
         )
 
-        window.geometry("520x450")
-        window.configure(bg="#111a2e")
-        window.transient(self.root)
+        window.geometry(
+            "540x500"
+        )
+
+        window.configure(
+            bg=self.PANEL
+        )
+
+        window.transient(
+            self.root
+        )
+
         window.grab_set()
+
+        header = tk.Frame(
+            window,
+            bg=self.PANEL
+        )
+
+        header.pack(
+            fill="x",
+            padx=35,
+            pady=(28, 5)
+        )
+
+        tk.Label(
+            header,
+            text=(
+                "Edit Account"
+                if editing
+                else
+                "Add Account"
+            ),
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                21,
+                "bold"
+            )
+        ).pack(
+            anchor="w"
+        )
+
+        tk.Label(
+            header,
+            text=(
+                "Update your saved credentials."
+                if editing
+                else
+                "Save a credential inside your encrypted vault."
+            ),
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                9
+            )
+        ).pack(
+            anchor="w",
+            pady=(5, 20)
+        )
 
         frame = tk.Frame(
             window,
-            bg="#111a2e"
+            bg=self.PANEL
         )
 
         frame.pack(
             fill="both",
             expand=True,
-            padx=35,
-            pady=30
+            padx=35
         )
 
-        def field_label(text):
+        def label(text):
+
             tk.Label(
                 frame,
                 text=text,
-                bg="#111a2e",
-                fg="white",
-                font=("Segoe UI", 10, "bold")
+                bg=self.PANEL,
+                fg="#91a0b5",
+                font=(
+                    "Segoe UI",
+                    9,
+                    "bold"
+                )
             ).pack(
-                anchor="w"
+                anchor="w",
+                pady=(8, 6)
             )
 
-        field_label("Website / App")
+        label(
+            "WEBSITE / APP"
+        )
 
-        website = ttk.Entry(frame)
+        website = ttk.Entry(
+            frame
+        )
 
         website.pack(
-            fill="x",
-            pady=(5, 15)
+            fill="x"
         )
 
-        field_label("Username / Email")
+        label(
+            "USERNAME / EMAIL"
+        )
 
-        username = ttk.Entry(frame)
+        username = ttk.Entry(
+            frame
+        )
 
         username.pack(
-            fill="x",
-            pady=(5, 15)
+            fill="x"
         )
 
-        field_label("Password")
+        label(
+            "PASSWORD"
+        )
 
         password_row = tk.Frame(
             frame,
-            bg="#111a2e"
+            bg=self.PANEL
         )
 
         password_row.pack(
-            fill="x",
-            pady=(5, 15)
+            fill="x"
         )
 
         password = ttk.Entry(
@@ -877,21 +1770,29 @@ class SecureVault:
             expand=True
         )
 
-        show = ttk.Button(
+        show = tk.Button(
             password_row,
             text="Show",
-            command=lambda: self.password_toggle(
-                password,
-                show
-            )
+            command=lambda:
+                self.password_toggle(
+                    password,
+                    show
+                ),
+            bg=self.PANEL_2,
+            fg=self.CYAN,
+            activebackground=self.PANEL_2,
+            activeforeground="white",
+            bd=0,
+            padx=12
         )
 
         show.pack(
             side="right",
-            padx=(6, 0)
+            padx=(7, 0)
         )
 
         def generate():
+
             password.delete(
                 0,
                 tk.END
@@ -908,11 +1809,16 @@ class SecureVault:
             command=generate
         ).pack(
             fill="x",
-            pady=(0, 20)
+            pady=16
         )
 
         if editing:
-            account = self.vault["accounts"][index]
+
+            account = (
+                self.vault[
+                    "accounts"
+                ][index]
+            )
 
             website.insert(
                 0,
@@ -939,16 +1845,25 @@ class SecureVault:
             )
 
         def save_account():
+
             site = website.get().strip()
+
             user = username.get().strip()
+
             pwd = password.get()
 
-            if not site or not user or not pwd:
+            if (
+                not site
+                or not user
+                or not pwd
+            ):
+
                 messagebox.showwarning(
                     "Missing Information",
                     "Fill in all three fields.",
                     parent=window
                 )
+
                 return
 
             data = {
@@ -958,11 +1873,19 @@ class SecureVault:
             }
 
             if editing:
-                self.vault["accounts"][index] = data
+
+                self.vault[
+                    "accounts"
+                ][index] = data
+
             else:
-                self.vault["accounts"].append(data)
+
+                self.vault[
+                    "accounts"
+                ].append(data)
 
             self.save()
+
             self.refresh()
 
             window.destroy()
@@ -970,41 +1893,55 @@ class SecureVault:
         ttk.Button(
             frame,
             text="💾 Save Securely",
+            style="Accent.TButton",
             command=save_account
         ).pack(
-            fill="x"
+            fill="x",
+            pady=(5, 25)
         )
 
-    # =========================
-    # VIEW
-    # =========================
+
+    # ========================================================
+    # VIEW ACCOUNT
+    # ========================================================
 
     def view_account(self):
+
         selection = self.tree.selection()
 
         if not selection:
+
             messagebox.showinfo(
                 "Select Account",
                 "Select an account first."
             )
+
             return
 
-        index = int(selection[0])
+        index = int(
+            selection[0]
+        )
 
-        account = self.vault["accounts"][index]
+        account = (
+            self.vault[
+                "accounts"
+            ][index]
+        )
 
-        window = tk.Toplevel(self.root)
+        window = tk.Toplevel(
+            self.root
+        )
 
         window.title(
             "Credential"
         )
 
         window.geometry(
-            "450x350"
+            "500x430"
         )
 
         window.configure(
-            bg="#111a2e"
+            bg=self.PANEL
         )
 
         window.transient(
@@ -1013,113 +1950,138 @@ class SecureVault:
 
         window.grab_set()
 
-        frame = tk.Frame(
+        tk.Label(
             window,
-            bg="#111a2e"
+            text="🔐 Credential",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                22,
+                "bold"
+            )
+        ).pack(
+            anchor="w",
+            padx=30,
+            pady=(28, 20)
         )
 
-        frame.pack(
+        content = tk.Frame(
+            window,
+            bg=self.PANEL
+        )
+
+        content.pack(
             fill="both",
             expand=True,
-            padx=30,
-            pady=25
+            padx=30
         )
 
-        for title, value in [
-            (
-                "Website / App",
-                account["website"]
-            ),
-            (
-                "Username / Email",
-                account["username"]
+        self.detail_label(
+            content,
+            "WEBSITE / APP",
+            account.get(
+                "website",
+                ""
             )
-        ]:
-            tk.Label(
-                frame,
-                text=title,
-                bg="#111a2e",
-                fg="#61dafb",
-                font=("Segoe UI", 9, "bold")
-            ).pack(
-                anchor="w"
-            )
+        )
 
-            tk.Label(
-                frame,
-                text=value,
-                bg="#111a2e",
-                fg="white",
-                font=("Segoe UI", 12)
-            ).pack(
-                anchor="w",
-                pady=(2, 15)
+        self.detail_label(
+            content,
+            "USERNAME / EMAIL",
+            account.get(
+                "username",
+                ""
             )
+        )
 
         tk.Label(
-            frame,
-            text="Password",
-            bg="#111a2e",
-            fg="#61dafb",
-            font=("Segoe UI", 9, "bold")
+            content,
+            text="PASSWORD",
+            bg=self.PANEL,
+            fg="#91a0b5",
+            font=(
+                "Segoe UI",
+                9,
+                "bold"
+            )
         ).pack(
-            anchor="w"
+            anchor="w",
+            pady=(10, 6)
         )
 
         password_text = tk.StringVar(
-            value="•" * len(
-                account["password"]
+            value=(
+                "•"
+                *
+                len(
+                    account.get(
+                        "password",
+                        ""
+                    )
+                )
             )
         )
 
         tk.Label(
-            frame,
+            content,
             textvariable=password_text,
-            bg="#111a2e",
-            fg="white",
-            font=("Consolas", 12)
-        ).pack(
+            bg=self.PANEL_2,
+            fg=self.TEXT,
+            font=(
+                "Consolas",
+                12
+            ),
             anchor="w",
-            pady=(2, 15)
+            padx=12,
+            pady=10
+        ).pack(
+            fill="x"
         )
 
         visible = [False]
 
         def toggle():
+
             visible[0] = not visible[0]
 
             if visible[0]:
+
                 password_text.set(
                     account["password"]
                 )
 
-                toggle_button.config(
+                toggle_btn.config(
                     text="Hide Password"
                 )
 
             else:
+
                 password_text.set(
-                    "•" * len(
+                    "•"
+                    *
+                    len(
                         account["password"]
                     )
                 )
 
-                toggle_button.config(
+                toggle_btn.config(
                     text="Show Password"
                 )
 
-        toggle_button = ttk.Button(
-            frame,
+        toggle_btn = ttk.Button(
+            content,
             text="Show Password",
             command=toggle
         )
 
-        toggle_button.pack(
+        toggle_btn.pack(
             fill="x",
-            pady=4
+            pady=(15, 6)
         )
 
         def copy():
+
             self.root.clipboard_clear()
 
             self.root.clipboard_append(
@@ -1130,7 +2092,7 @@ class SecureVault:
 
             messagebox.showinfo(
                 "Copied",
-                "Password copied.\n"
+                "Password copied to clipboard.\n"
                 "Clipboard clears in 15 seconds.",
                 parent=window
             )
@@ -1141,19 +2103,61 @@ class SecureVault:
             )
 
         ttk.Button(
-            frame,
+            content,
             text="📋 Copy Password",
+            style="Accent.TButton",
             command=copy
         ).pack(
-            fill="x",
-            pady=4
+            fill="x"
         )
 
-    # =========================
+
+    def detail_label(
+        self,
+        parent,
+        title,
+        value
+    ):
+
+        tk.Label(
+            parent,
+            text=title,
+            bg=self.PANEL,
+            fg="#91a0b5",
+            font=(
+                "Segoe UI",
+                9,
+                "bold"
+            )
+        ).pack(
+            anchor="w",
+            pady=(0, 5)
+        )
+
+        tk.Label(
+            parent,
+            text=value,
+            bg=self.PANEL_2,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                11
+            ),
+            anchor="w",
+            padx=12,
+            pady=10
+        ).pack(
+            fill="x",
+            pady=(0, 12)
+        )
+
+
+    # ========================================================
     # EDIT
-    # =========================
+    # ========================================================
 
     def edit_account(self):
+
         selection = self.tree.selection()
 
         if not selection:
@@ -1163,45 +2167,74 @@ class SecureVault:
             int(selection[0])
         )
 
-    # =========================
+
+    # ========================================================
     # DELETE
-    # =========================
+    # ========================================================
 
     def delete_account(self):
+
         selection = self.tree.selection()
 
         if not selection:
             return
 
-        index = int(selection[0])
+        index = int(
+            selection[0]
+        )
 
-        account = self.vault["accounts"][index]
+        account = (
+            self.vault[
+                "accounts"
+            ][index]
+        )
 
-        if messagebox.askyesno(
+        confirmed = messagebox.askyesno(
             "Delete Account",
-            "Delete "
-            + account["website"]
-            + "?"
-        ):
-            del self.vault["accounts"][index]
+            (
+                "Delete the saved account for\n\n"
+                +
+                account.get(
+                    "website",
+                    ""
+                )
+                +
+                "?"
+            )
+        )
 
-            self.save()
-            self.refresh()
+        if not confirmed:
+            return
 
-    # =========================
+        del self.vault[
+            "accounts"
+        ][index]
+
+        self.save()
+
+        self.refresh()
+
+
+    # ========================================================
     # PASSWORD GENERATOR
-    # =========================
+    # ========================================================
 
     def generate_strong_password(self):
+
         characters = (
             string.ascii_letters
-            + string.digits
-            + "!@#$%^&*()-_=+"
+            +
+            string.digits
+            +
+            "!@#$%^&*()-_=+"
         )
 
         while True:
+
             password = "".join(
-                secrets.choice(characters)
+                secrets.choice(
+                    characters
+                )
                 for _ in range(24)
             )
 
@@ -1210,68 +2243,209 @@ class SecureVault:
                     c.islower()
                     for c in password
                 )
-                and any(
+                and
+                any(
                     c.isupper()
                     for c in password
                 )
-                and any(
+                and
+                any(
                     c.isdigit()
                     for c in password
                 )
-                and any(
+                and
+                any(
                     c in "!@#$%^&*()-_=+"
                     for c in password
                 )
             ):
+
                 return password
 
+
     def password_generator(self):
-        password = self.generate_strong_password()
 
-        self.root.clipboard_clear()
-
-        self.root.clipboard_append(
-            password
+        window = tk.Toplevel(
+            self.root
         )
 
-        self.root.update()
-
-        messagebox.showinfo(
-            "Password Generated",
-            "Strong password copied to clipboard.\n\n"
-            "Clipboard clears in 15 seconds."
+        window.title(
+            "Password Generator"
         )
 
-        self.root.after(
-            15000,
-            self.clear_clipboard
+        window.geometry(
+            "560x360"
         )
 
-    # =========================
+        window.configure(
+            bg=self.PANEL
+        )
+
+        window.transient(
+            self.root
+        )
+
+        window.grab_set()
+
+        tk.Label(
+            window,
+            text="🎲 Password Generator",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                22,
+                "bold"
+            )
+        ).pack(
+            pady=(30, 8)
+        )
+
+        tk.Label(
+            window,
+            text="Generate a strong 24-character password.",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                10
+            )
+        ).pack()
+
+        password_var = tk.StringVar(
+            value=self.generate_strong_password()
+        )
+
+        entry = tk.Entry(
+            window,
+            textvariable=password_var,
+            justify="center",
+            font=(
+                "Consolas",
+                12
+            ),
+            bg=self.PANEL_2,
+            fg=self.CYAN,
+            insertbackground=self.CYAN,
+            bd=0
+        )
+
+        entry.pack(
+            fill="x",
+            padx=35,
+            pady=28,
+            ipady=12
+        )
+
+        def generate():
+
+            password_var.set(
+                self.generate_strong_password()
+            )
+
+        def copy():
+
+            self.root.clipboard_clear()
+
+            self.root.clipboard_append(
+                password_var.get()
+            )
+
+            self.root.update()
+
+            messagebox.showinfo(
+                "Copied",
+                "Password copied to clipboard.\n"
+                "Clipboard clears in 15 seconds.",
+                parent=window
+            )
+
+            self.root.after(
+                15000,
+                self.clear_clipboard
+            )
+
+        buttons = tk.Frame(
+            window,
+            bg=self.PANEL
+        )
+
+        buttons.pack(
+            fill="x",
+            padx=35
+        )
+
+        ttk.Button(
+            buttons,
+            text="🎲 Generate Again",
+            command=generate
+        ).pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(0, 6)
+        )
+
+        ttk.Button(
+            buttons,
+            text="📋 Copy",
+            style="Accent.TButton",
+            command=copy
+        ).pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(6, 0)
+        )
+
+
+    # ========================================================
     # FORGOT PASSWORD
-    # =========================
+    # ========================================================
 
     def forgot_password(self):
-        webbrowser.open(
-            "https://securevaultreal.vercel.app/forgot-password.html"
-        )
 
-    # =========================
+        try:
+
+            webbrowser.open(
+                FORGOT_PASSWORD_URL
+            )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Could Not Open Recovery Page",
+                (
+                    "SecureVault could not open the "
+                    "password recovery website.\n\n"
+                    +
+                    str(error)
+                )
+            )
+
+
+    # ========================================================
     # CLIPBOARD
-    # =========================
+    # ========================================================
 
     def clear_clipboard(self):
+
         try:
+
             self.root.clipboard_clear()
+
             self.root.update()
+
         except Exception:
             pass
 
-    # =========================
+
+    # ========================================================
     # LOCK
-    # =========================
+    # ========================================================
 
     def lock(self):
+
         self.clear_clipboard()
 
         self.master_password = None
@@ -1283,11 +2457,13 @@ class SecureVault:
 
         self.login_screen()
 
-    # =========================
+
+    # ========================================================
     # CLOSE
-    # =========================
+    # ========================================================
 
     def close(self):
+
         self.clear_clipboard()
 
         self.master_password = None
@@ -1300,9 +2476,16 @@ class SecureVault:
         self.root.destroy()
 
 
+# ============================================================
+# START
+# ============================================================
+
 if __name__ == "__main__":
+
     root = tk.Tk()
 
-    app = SecureVault(root)
+    app = SecureVault(
+        root
+    )
 
     root.mainloop()

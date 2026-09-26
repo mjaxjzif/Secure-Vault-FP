@@ -6,23 +6,23 @@ import secrets
 import string
 import time
 import webbrowser
+import base64
 
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from crypto import encrypt_data, decrypt_data
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from recovery import (
-    create_recovery_metadata,
-    recover_master_password,
-    get_recovery_email,
-    update_recovery_metadata,
-)
+from crypto import encrypt_data, decrypt_data
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
+
+APP_NAME = "SecureVault"
 
 VAULT_FILE = "vault.json"
 RECOVERY_META_FILE = "recovery_meta.json"
@@ -35,16 +35,14 @@ FORGOT_PASSWORD_URL = (
     "https://securevaultreal.vercel.app/forgot-password.html"
 )
 
+PBKDF2_ITERATIONS = 390000
+
 
 # ============================================================
 # SECUREVAULT
 # ============================================================
 
 class SecureVault:
-
-    # ========================================================
-    # COLORS
-    # ========================================================
 
     BG = "#070b14"
     PANEL = "#0d1422"
@@ -59,41 +57,30 @@ class SecureVault:
 
     GREEN = "#63e6be"
     RED = "#ff6b81"
-    YELLOW = "#ffd166"
 
     # ========================================================
-    # START
+    # INITIALIZATION
     # ========================================================
 
     def __init__(self, root):
 
         self.root = root
 
-        self.root.title(
-            "SecureVault"
-        )
-
-        self.root.geometry(
-            "1180x720"
-        )
-
-        self.root.minsize(
-            950,
-            620
-        )
+        self.root.title(APP_NAME)
+        self.root.geometry("1180x720")
+        self.root.minsize(950, 620)
 
         self.root.configure(
             bg=self.BG
         )
 
         self.master_password = None
+        self.recovery_key = None
 
         self.vault = {
             "accounts": [],
             "email": ""
         }
-
-        self.recovery_key = None
 
         self.last_activity = time.time()
 
@@ -133,11 +120,7 @@ class SecureVault:
 
         style.configure(
             "TButton",
-            font=(
-                "Segoe UI",
-                10,
-                "bold"
-            ),
+            font=("Segoe UI", 10, "bold"),
             padding=10,
             background=self.PANEL_3,
             foreground=self.TEXT,
@@ -147,20 +130,13 @@ class SecureVault:
         style.map(
             "TButton",
             background=[
-                (
-                    "active",
-                    "#20314d"
-                )
+                ("active", "#20314d")
             ]
         )
 
         style.configure(
             "Accent.TButton",
-            font=(
-                "Segoe UI",
-                10,
-                "bold"
-            ),
+            font=("Segoe UI", 10, "bold"),
             padding=11,
             background=self.CYAN,
             foreground="#061018",
@@ -170,20 +146,13 @@ class SecureVault:
         style.map(
             "Accent.TButton",
             background=[
-                (
-                    "active",
-                    "#8be8ff"
-                )
+                ("active", "#8be8ff")
             ]
         )
 
         style.configure(
             "Danger.TButton",
-            font=(
-                "Segoe UI",
-                10,
-                "bold"
-            ),
+            font=("Segoe UI", 10, "bold"),
             padding=10,
             background="#321827",
             foreground="#ff9aaa",
@@ -193,10 +162,7 @@ class SecureVault:
         style.configure(
             "TEntry",
             padding=9,
-            font=(
-                "Segoe UI",
-                11
-            ),
+            font=("Segoe UI", 11),
             fieldbackground="#101a2b",
             foreground=self.TEXT
         )
@@ -206,10 +172,7 @@ class SecureVault:
             background=self.PANEL,
             fieldbackground=self.PANEL,
             foreground=self.TEXT,
-            font=(
-                "Segoe UI",
-                10
-            ),
+            font=("Segoe UI", 10),
             rowheight=42,
             borderwidth=0
         )
@@ -218,11 +181,7 @@ class SecureVault:
             "Treeview.Heading",
             background="#141f33",
             foreground="#9fb0c8",
-            font=(
-                "Segoe UI",
-                10,
-                "bold"
-            ),
+            font=("Segoe UI", 10, "bold"),
             padding=10,
             borderwidth=0
         )
@@ -230,21 +189,15 @@ class SecureVault:
         style.map(
             "Treeview",
             background=[
-                (
-                    "selected",
-                    "#183652"
-                )
+                ("selected", "#183652")
             ],
             foreground=[
-                (
-                    "selected",
-                    "white"
-                )
+                ("selected", "white")
             ]
         )
 
     # ========================================================
-    # TIMER
+    # AUTO LOCK
     # ========================================================
 
     def reset_timer(self, event=None):
@@ -257,8 +210,7 @@ class SecureVault:
         if (
             self.master_password is not None
             and
-            time.time() - self.last_activity
-            >= AUTO_LOCK_TIME
+            time.time() - self.last_activity >= AUTO_LOCK_TIME
         ):
             self.lock()
 
@@ -276,11 +228,15 @@ class SecureVault:
         for widget in self.root.winfo_children():
             widget.destroy()
 
-    def password_toggle(
-        self,
-        entry,
-        button
-    ):
+    def clear_clipboard(self):
+
+        try:
+            self.root.clipboard_clear()
+            self.root.update()
+        except Exception:
+            pass
+
+    def password_toggle(self, entry, button):
 
         if entry.cget("show") == "":
 
@@ -303,7 +259,242 @@ class SecureVault:
             )
 
     # ========================================================
-    # LOGIN
+    # RECOVERY CRYPTO
+    # ========================================================
+
+    def derive_recovery_key(
+        self,
+        recovery_key,
+        salt
+    ):
+
+        if not recovery_key:
+            raise ValueError(
+                "Recovery key is empty."
+            )
+
+        if not salt:
+            raise ValueError(
+                "Recovery salt is missing."
+            )
+
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=PBKDF2_ITERATIONS
+        )
+
+        derived = kdf.derive(
+            recovery_key.encode("utf-8")
+        )
+
+        return Fernet(
+            base64.urlsafe_b64encode(
+                derived
+            )
+        )
+
+    def create_recovery_metadata(
+        self,
+        email,
+        master_password,
+        recovery_key
+    ):
+
+        salt = secrets.token_bytes(16)
+
+        fernet = self.derive_recovery_key(
+            recovery_key,
+            salt
+        )
+
+        encrypted_password = (
+            fernet.encrypt(
+                master_password.encode("utf-8")
+            ).decode("utf-8")
+        )
+
+        metadata = {
+            "version": 1,
+            "email": email,
+            "salt": base64.b64encode(
+                salt
+            ).decode("ascii"),
+            "encrypted_master_password":
+                encrypted_password
+        }
+
+        temporary = (
+            RECOVERY_META_FILE +
+            ".tmp"
+        )
+
+        with open(
+            temporary,
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+                metadata,
+                file,
+                indent=2
+            )
+
+        os.replace(
+            temporary,
+            RECOVERY_META_FILE
+        )
+
+    def update_recovery_metadata(
+        self,
+        email,
+        master_password,
+        recovery_key
+    ):
+
+        if not os.path.exists(
+            RECOVERY_META_FILE
+        ):
+
+            self.create_recovery_metadata(
+                email,
+                master_password,
+                recovery_key
+            )
+
+            return
+
+        with open(
+            RECOVERY_META_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            metadata = json.load(file)
+
+        salt = base64.b64decode(
+            metadata["salt"]
+        )
+
+        fernet = self.derive_recovery_key(
+            recovery_key,
+            salt
+        )
+
+        encrypted_password = (
+            fernet.encrypt(
+                master_password.encode("utf-8")
+            ).decode("utf-8")
+        )
+
+        metadata["email"] = email
+
+        metadata[
+            "encrypted_master_password"
+        ] = encrypted_password
+
+        temporary = (
+            RECOVERY_META_FILE +
+            ".tmp"
+        )
+
+        with open(
+            temporary,
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+                metadata,
+                file,
+                indent=2
+            )
+
+        os.replace(
+            temporary,
+            RECOVERY_META_FILE
+        )
+
+    def recover_master_password(
+        self,
+        recovery_key
+    ):
+
+        if not os.path.exists(
+            RECOVERY_META_FILE
+        ):
+
+            raise ValueError(
+                "Recovery is not set up for this vault."
+            )
+
+        with open(
+            RECOVERY_META_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            metadata = json.load(file)
+
+        salt = base64.b64decode(
+            metadata["salt"]
+        )
+
+        encrypted_password = metadata[
+            "encrypted_master_password"
+        ]
+
+        fernet = self.derive_recovery_key(
+            recovery_key,
+            salt
+        )
+
+        try:
+
+            password = fernet.decrypt(
+                encrypted_password.encode("utf-8")
+            ).decode("utf-8")
+
+            return password
+
+        except InvalidToken:
+
+            raise ValueError(
+                "Incorrect recovery key."
+            )
+
+    def get_recovery_email(self):
+
+        if not os.path.exists(
+            RECOVERY_META_FILE
+        ):
+            return ""
+
+        try:
+
+            with open(
+                RECOVERY_META_FILE,
+                "r",
+                encoding="utf-8"
+            ) as file:
+
+                metadata = json.load(file)
+
+            return str(
+                metadata.get(
+                    "email",
+                    ""
+                )
+            ).strip().lower()
+
+        except Exception:
+
+            return ""
+
+    # ========================================================
+    # LOGIN SCREEN
     # ========================================================
 
     def login_screen(self):
@@ -320,9 +511,7 @@ class SecureVault:
             expand=True
         )
 
-        # ----------------------------------------------------
-        # LEFT
-        # ----------------------------------------------------
+        # LEFT SIDE
 
         left = tk.Frame(
             outer,
@@ -384,14 +573,12 @@ class SecureVault:
             pady=(8, 25)
         )
 
-        items = [
+        for item in [
             "🔒  Encrypted local vault",
             "🎲  Strong password generator",
             "⏱  Automatic locking",
-            "🔑  Web-based recovery"
-        ]
-
-        for item in items:
+            "🔑  Email recovery"
+        ]:
 
             tk.Label(
                 branding,
@@ -407,9 +594,7 @@ class SecureVault:
                 pady=4
             )
 
-        # ----------------------------------------------------
-        # RIGHT
-        # ----------------------------------------------------
+        # RIGHT SIDE
 
         right = tk.Frame(
             outer,
@@ -459,10 +644,10 @@ class SecureVault:
         tk.Label(
             card,
             text=(
-                "Unlock your encrypted password vault."
+                "Unlock your password vault."
                 if has_vault
                 else
-                "Create a strong master password."
+                "Choose a strong master password."
             ),
             bg=self.PANEL,
             fg=self.MUTED,
@@ -617,22 +802,20 @@ class SecureVault:
 
             return
 
-        confirm = self.ask_confirmation_password()
+        confirm = self.confirm_password()
 
         if confirm != password:
 
             messagebox.showerror(
-                "Passwords Do Not Match",
+                "Mismatch",
                 "The passwords do not match."
             )
 
             return
 
-        recovery_email = (
-            self.ask_recovery_email()
-        )
+        email = self.ask_recovery_email()
 
-        if not recovery_email:
+        if not email:
             return
 
         self.master_password = password
@@ -643,7 +826,7 @@ class SecureVault:
 
         self.vault = {
             "accounts": [],
-            "email": recovery_email,
+            "email": email,
             "recovery_key": self.recovery_key
         }
 
@@ -653,21 +836,17 @@ class SecureVault:
 
         try:
 
-            create_recovery_metadata(
-                recovery_email,
-                self.master_password,
+            self.create_recovery_metadata(
+                email,
+                password,
                 self.recovery_key
             )
 
         except Exception as error:
 
             messagebox.showerror(
-                "Recovery Setup Failed",
-                (
-                    "The vault was created, but recovery "
-                    "setup failed.\n\n"
-                    + str(error)
-                )
+                "Recovery Setup Error",
+                str(error)
             )
 
             return
@@ -678,7 +857,7 @@ class SecureVault:
     # CONFIRM PASSWORD
     # ========================================================
 
-    def ask_confirmation_password(self):
+    def confirm_password(self):
 
         window = tk.Toplevel(
             self.root
@@ -728,7 +907,7 @@ class SecureVault:
             padx=35
         )
 
-        def done():
+        def finish():
 
             result[0] = entry.get()
 
@@ -738,7 +917,7 @@ class SecureVault:
             window,
             text="Confirm",
             style="Accent.TButton",
-            command=done
+            command=finish
         ).pack(
             fill="x",
             padx=35,
@@ -800,8 +979,8 @@ class SecureVault:
         tk.Label(
             window,
             text=(
-                "Enter the email you will use for\n"
-                "SecureVault recovery."
+                "Enter the email you will use\n"
+                "for password recovery."
             ),
             bg=self.PANEL,
             fg=self.MUTED,
@@ -825,16 +1004,15 @@ class SecureVault:
 
         def save_email():
 
-            value = (
+            email = (
                 entry.get()
                 .strip()
                 .lower()
             )
 
             if (
-                "@" not in value
-                or
-                "." not in value
+                "@" not in email
+                or "." not in email
             ):
 
                 messagebox.showwarning(
@@ -845,7 +1023,7 @@ class SecureVault:
 
                 return
 
-            result[0] = value
+            result[0] = email
 
             window.destroy()
 
@@ -874,19 +1052,341 @@ class SecureVault:
 
     def generate_recovery_key(self):
 
-        chars = (
-            string.ascii_uppercase
-            +
+        characters = (
+            string.ascii_uppercase +
             string.digits
         )
 
         return "-".join(
             "".join(
-                secrets.choice(chars)
+                secrets.choice(
+                    characters
+                )
                 for _ in range(6)
             )
             for _ in range(4)
         )
+
+    def ensure_recovery_setup(self):
+
+        if self.master_password is None:
+            raise ValueError(
+                "Unlock your vault first."
+            )
+
+        recovery_key = str(
+            self.vault.get(
+                "recovery_key",
+                ""
+            )
+        ).strip()
+
+        email = str(
+            self.vault.get(
+                "email",
+                ""
+            )
+        ).strip().lower()
+
+        created_new_key = False
+
+        if not recovery_key:
+
+            recovery_key = (
+                self.generate_recovery_key()
+            )
+
+            self.vault[
+                "recovery_key"
+            ] = recovery_key
+
+            self.recovery_key = recovery_key
+
+            created_new_key = True
+
+        else:
+
+            self.recovery_key = recovery_key
+
+        if not email:
+
+            email = self.ask_recovery_email()
+
+            if not email:
+                return None
+
+            self.vault[
+                "email"
+            ] = email
+
+        else:
+
+            email = email
+
+        self.save()
+
+        # Always make sure local recovery metadata exists
+        # and matches this recovery key.
+        self.create_recovery_metadata(
+            email,
+            self.master_password,
+            recovery_key
+        )
+
+        if created_new_key:
+
+            messagebox.showinfo(
+                "Recovery Enabled",
+                (
+                    "Recovery has been enabled for this vault.\n\n"
+                    "Your new Recovery Key will now be shown."
+                ),
+                parent=self.root
+            )
+
+        return recovery_key
+
+    def show_recovery_key(self):
+
+        if self.master_password is None:
+
+            messagebox.showwarning(
+                "Vault Locked",
+                "Unlock your vault first.",
+                parent=self.root
+            )
+
+            return
+
+        try:
+
+            recovery_key = (
+                self.ensure_recovery_setup()
+            )
+
+            if not recovery_key:
+                return
+
+            self.show_recovery_key_window(
+                recovery_key
+            )
+
+        except Exception as error:
+
+            messagebox.showerror(
+                "Recovery Error",
+                str(error),
+                parent=self.root
+            )
+
+    def show_recovery_key_window(
+        self,
+        recovery_key
+    ):
+
+        window = tk.Toplevel(
+            self.root
+        )
+
+        window.title(
+            "SecureVault Recovery Key"
+        )
+
+        window.geometry(
+            "650x330"
+        )
+
+        window.configure(
+            bg=self.BG
+        )
+
+        window.resizable(
+            False,
+            False
+        )
+
+        window.transient(
+            self.root
+        )
+
+        window.grab_set()
+
+        tk.Label(
+            window,
+            text="🔑",
+            bg=self.BG,
+            fg=self.CYAN,
+            font=(
+                "Segoe UI Emoji",
+                45
+            )
+        ).pack(
+            pady=(20, 2)
+        )
+
+        tk.Label(
+            window,
+            text="Your Recovery Key",
+            bg=self.BG,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                23,
+                "bold"
+            )
+        ).pack()
+
+        tk.Label(
+            window,
+            text=(
+                "Save this key somewhere private.\n"
+                "You will need it to recover your vault."
+            ),
+            bg=self.BG,
+            fg=self.MUTED,
+            justify="center",
+            font=(
+                "Segoe UI",
+                9
+            )
+        ).pack(
+            pady=(7, 15)
+        )
+
+        key_box = tk.Entry(
+            window,
+            width=48,
+            justify="center",
+            font=(
+                "Consolas",
+                13,
+                "bold"
+            ),
+            bg=self.PANEL_2,
+            fg=self.CYAN,
+            readonlybackground=self.PANEL_2,
+            insertbackground="white",
+            bd=0
+        )
+
+        key_box.insert(
+            0,
+            recovery_key
+        )
+
+        key_box.config(
+            state="readonly"
+        )
+
+        key_box.pack(
+            padx=30,
+            ipady=10
+        )
+
+        buttons = tk.Frame(
+            window,
+            bg=self.BG
+        )
+
+        buttons.pack(
+            pady=20
+        )
+
+        def copy_key():
+
+            try:
+
+                self.root.clipboard_clear()
+
+                self.root.clipboard_append(
+                    recovery_key
+                )
+
+                self.root.update()
+
+                copy_button.config(
+                    text="Copied ✓"
+                )
+
+                window.after(
+                    1500,
+                    lambda:
+                    copy_button.config(
+                        text="Copy Recovery Key"
+                    )
+                )
+
+            except Exception as error:
+
+                messagebox.showerror(
+                    "Copy Error",
+                    str(error),
+                    parent=window
+                )
+
+        copy_button = tk.Button(
+            buttons,
+            text="Copy Recovery Key",
+            command=copy_key,
+            bg="#2563eb",
+            fg="white",
+            activebackground="#1d4ed8",
+            activeforeground="white",
+            bd=0,
+            padx=22,
+            pady=10,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            )
+        )
+
+        copy_button.pack(
+            side="left",
+            padx=5
+        )
+
+        close_button = tk.Button(
+            buttons,
+            text="Close",
+            command=window.destroy,
+            bg=self.PANEL_3,
+            fg=self.TEXT,
+            activebackground="#24344c",
+            activeforeground="white",
+            bd=0,
+            padx=22,
+            pady=10,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            )
+        )
+
+        close_button.pack(
+            side="left",
+            padx=5
+        )
+
+        key_box.bind(
+            "<Control-c>",
+            lambda event: copy_key()
+        )
+
+        tk.Label(
+            window,
+            text="Never share this key with anyone.",
+            bg=self.BG,
+            fg="#68758a",
+            font=(
+                "Segoe UI",
+                8
+            )
+        ).pack()
 
     def recovery_screen(self):
 
@@ -931,7 +1431,7 @@ class SecureVault:
         tk.Label(
             card,
             text=(
-                "Keep this key somewhere safe.\n"
+                "Save this key somewhere safe.\n"
                 "It is required for password recovery."
             ),
             bg=self.PANEL,
@@ -945,9 +1445,9 @@ class SecureVault:
             pady=12
         )
 
-        key = tk.Entry(
+        key_box = tk.Entry(
             card,
-            width=34,
+            width=38,
             justify="center",
             font=(
                 "Consolas",
@@ -960,46 +1460,59 @@ class SecureVault:
             bd=0
         )
 
-        key.insert(
+        key_box.insert(
             0,
             self.recovery_key
         )
 
-        key.config(
+        key_box.config(
             state="readonly"
         )
 
-        key.pack(
+        key_box.pack(
             padx=35,
             pady=16,
             ipady=9
         )
 
-        def copy_key():
+        def copy():
 
-            self.root.clipboard_clear()
+            try:
 
-            self.root.clipboard_append(
-                self.recovery_key
-            )
+                self.root.clipboard_clear()
 
-            self.root.update()
+                self.root.clipboard_append(
+                    self.recovery_key
+                )
 
-            messagebox.showinfo(
-                "Copied",
-                "Recovery key copied.\n"
-                "Clipboard clears in 15 seconds."
-            )
+                self.root.update()
 
-            self.root.after(
-                15000,
-                self.clear_clipboard
-            )
+                messagebox.showinfo(
+                    "Copied",
+                    (
+                        "Recovery key copied to clipboard.\n\n"
+                        "Clipboard clears in 15 seconds."
+                    ),
+                    parent=card
+                )
+
+                self.root.after(
+                    15000,
+                    self.clear_clipboard
+                )
+
+            except Exception as error:
+
+                messagebox.showerror(
+                    "Copy Error",
+                    str(error),
+                    parent=card
+                )
 
         ttk.Button(
             card,
             text="📋 Copy Recovery Key",
-            command=copy_key
+            command=copy
         ).pack(
             fill="x",
             padx=35,
@@ -1018,10 +1531,16 @@ class SecureVault:
         )
 
     # ========================================================
-    # SAVE
+    # SAVE VAULT
     # ========================================================
 
     def save(self):
+
+        if self.master_password is None:
+
+            raise ValueError(
+                "Vault cannot be saved while locked."
+            )
 
         encrypted = encrypt_data(
             self.vault,
@@ -1029,8 +1548,7 @@ class SecureVault:
         )
 
         temporary = (
-            VAULT_FILE
-            +
+            VAULT_FILE +
             ".tmp"
         )
 
@@ -1069,18 +1587,18 @@ class SecureVault:
                 encoding="utf-8"
             ) as file:
 
-                encrypted = json.load(
-                    file
-                )
+                encrypted = json.load(file)
 
-            self.vault = decrypt_data(
+            vault_data = decrypt_data(
                 encrypted,
                 password
             )
 
-            # --------------------------------------------
-            # RECOVERY MIGRATION
-            # --------------------------------------------
+            self.master_password = password
+
+            self.vault = vault_data
+
+            self.last_activity = time.time()
 
             recovery_key = str(
                 self.vault.get(
@@ -1089,49 +1607,94 @@ class SecureVault:
                 )
             ).strip()
 
-            if recovery_key:
+            email = str(
+                self.vault.get(
+                    "email",
+                    ""
+                )
+            ).strip().lower()
 
-                if not os.path.exists(
-                    RECOVERY_META_FILE
-                ):
+            # ------------------------------------------------
+            # OLD VAULT MIGRATION
+            # ------------------------------------------------
 
-                    recovery_email = str(
-                        self.vault.get(
-                            "email",
-                            ""
-                        )
-                    ).strip().lower()
+            if not recovery_key:
 
-                    if not recovery_email:
+                recovery_key = (
+                    self.generate_recovery_key()
+                )
 
-                        recovery_email = (
-                            self.ask_recovery_email()
-                        )
+                self.recovery_key = recovery_key
 
-                        if not recovery_email:
-                            return
+                if not email:
 
-                        self.vault[
-                            "email"
-                        ] = recovery_email
-
-                        self.master_password = password
-
-                        self.save()
-
-                    create_recovery_metadata(
-                        recovery_email,
-                        password,
-                        recovery_key
+                    email = (
+                        self.ask_recovery_email()
                     )
 
-            self.master_password = password
+                    if not email:
+                        return
 
-            self.last_activity = time.time()
+                self.vault[
+                    "email"
+                ] = email
+
+                self.vault[
+                    "recovery_key"
+                ] = recovery_key
+
+                self.save()
+
+                self.create_recovery_metadata(
+                    email,
+                    password,
+                    recovery_key
+                )
+
+                messagebox.showinfo(
+                    "Recovery Enabled",
+                    (
+                        "Recovery has been enabled.\n\n"
+                        "Your recovery key is:\n\n"
+                        +
+                        recovery_key +
+                        "\n\n"
+                        "Save it somewhere safe."
+                    )
+                )
+
+            elif not os.path.exists(
+                RECOVERY_META_FILE
+            ):
+
+                if not email:
+
+                    email = (
+                        self.ask_recovery_email()
+                    )
+
+                    if not email:
+                        return
+
+                    self.vault[
+                        "email"
+                    ] = email
+
+                    self.save()
+
+                self.create_recovery_metadata(
+                    email,
+                    password,
+                    recovery_key
+                )
+
+            self.recovery_key = recovery_key
 
             self.dashboard()
 
         except Exception:
+
+            self.master_password = None
 
             messagebox.showerror(
                 "Access Denied",
@@ -1206,7 +1769,7 @@ class SecureVault:
                 "bold"
             )
         ).pack(
-            pady=(2, 35)
+            pady=(2, 30)
         )
 
         self.sidebar_button(
@@ -1226,6 +1789,16 @@ class SecureVault:
             sidebar,
             "⚙   Password Generator",
             self.password_generator
+        )
+
+        # ----------------------------------------------------
+        # NEW RECOVERY KEY BUTTON
+        # ----------------------------------------------------
+
+        self.sidebar_button(
+            sidebar,
+            "🔑   Recovery Key",
+            self.show_recovery_key
         )
 
         spacer = tk.Frame(
@@ -1338,7 +1911,7 @@ class SecureVault:
         )
 
         # ----------------------------------------------------
-        # STAT CARDS
+        # STATS
         # ----------------------------------------------------
 
         stats = tk.Frame(
@@ -1352,18 +1925,18 @@ class SecureVault:
             pady=20
         )
 
-        accounts_count = len(
+        account_count = len(
             self.vault.get(
                 "accounts",
                 []
             )
         )
 
-        stat_values = [
+        values = [
             (
                 "🔐",
                 "Saved Accounts",
-                str(accounts_count)
+                str(account_count)
             ),
             (
                 "🛡",
@@ -1377,7 +1950,7 @@ class SecureVault:
             )
         ]
 
-        for icon, title, value in stat_values:
+        for icon, title, value in values:
 
             card = tk.Frame(
                 stats,
@@ -1494,15 +2067,15 @@ class SecureVault:
         )
 
         # ----------------------------------------------------
-        # TABLE
+        # TREE
         # ----------------------------------------------------
 
-        table_frame = tk.Frame(
+        table = tk.Frame(
             main,
             bg=self.PANEL
         )
 
-        table_frame.pack(
+        table.pack(
             fill="both",
             expand=True,
             padx=30,
@@ -1510,7 +2083,7 @@ class SecureVault:
         )
 
         self.tree = ttk.Treeview(
-            table_frame,
+            table,
             columns=(
                 "site",
                 "username"
@@ -1542,7 +2115,7 @@ class SecureVault:
         )
 
         scrollbar = ttk.Scrollbar(
-            table_frame,
+            table,
             orient="vertical",
             command=self.tree.yview
         )
@@ -1569,7 +2142,7 @@ class SecureVault:
         )
 
         # ----------------------------------------------------
-        # CONTROLS
+        # BOTTOM
         # ----------------------------------------------------
 
         controls = tk.Frame(
@@ -1627,7 +2200,7 @@ class SecureVault:
         self.refresh()
 
     # ========================================================
-    # SIDEBAR BUTTON
+    # SIDEBAR
     # ========================================================
 
     def sidebar_button(
@@ -1702,8 +2275,8 @@ class SecureVault:
             search = (
                 self.search_entry
                 .get()
-                .lower()
                 .strip()
+                .lower()
             )
 
         for index, account in enumerate(
@@ -1730,11 +2303,9 @@ class SecureVault:
             if search:
 
                 if (
-                    search not in
-                    website.lower()
+                    search not in website.lower()
                     and
-                    search not in
-                    username.lower()
+                    search not in username.lower()
                 ):
                     continue
 
@@ -1813,7 +2384,7 @@ class SecureVault:
                 "Update your credentials."
                 if editing
                 else
-                "Save a credential inside your encrypted vault."
+                "Save a credential securely."
             ),
             bg=self.PANEL,
             fg=self.MUTED,
@@ -1903,13 +2474,13 @@ class SecureVault:
             expand=True
         )
 
-        show_button = tk.Button(
+        show = tk.Button(
             password_row,
             text="Show",
             command=lambda:
                 self.password_toggle(
                     password,
-                    show_button
+                    show
                 ),
             bg=self.PANEL_2,
             fg=self.CYAN,
@@ -1919,7 +2490,7 @@ class SecureVault:
             padx=12
         )
 
-        show_button.pack(
+        show.pack(
             side="right",
             padx=(7, 0)
         )
@@ -2206,7 +2777,7 @@ class SecureVault:
             pady=(15, 6)
         )
 
-        def copy_password():
+        def copy():
 
             self.root.clipboard_clear()
 
@@ -2232,14 +2803,10 @@ class SecureVault:
             content,
             text="📋 Copy Password",
             style="Accent.TButton",
-            command=copy_password
+            command=copy
         ).pack(
             fill="x"
         )
-
-    # ========================================================
-    # DETAIL LABEL
-    # ========================================================
 
     def detail_label(
         self,
@@ -2390,137 +2957,30 @@ class SecureVault:
 
     def password_generator(self):
 
-        window = tk.Toplevel(
-            self.root
+        password = (
+            self.generate_strong_password()
         )
 
-        window.title(
-            "Password Generator"
+        self.root.clipboard_clear()
+
+        self.root.clipboard_append(
+            password
         )
 
-        window.geometry(
-            "560x360"
-        )
+        self.root.update()
 
-        window.configure(
-            bg=self.PANEL
-        )
-
-        window.transient(
-            self.root
-        )
-
-        window.grab_set()
-
-        tk.Label(
-            window,
-            text="🎲 Password Generator",
-            bg=self.PANEL,
-            fg=self.TEXT,
-            font=(
-                "Segoe UI",
-                22,
-                "bold"
+        messagebox.showinfo(
+            "Password Generated",
+            (
+                "A strong password was generated "
+                "and copied to your clipboard.\n\n"
+                "Clipboard clears in 15 seconds."
             )
-        ).pack(
-            pady=(30, 8)
         )
 
-        tk.Label(
-            window,
-            text="Generate a strong 24-character password.",
-            bg=self.PANEL,
-            fg=self.MUTED,
-            font=(
-                "Segoe UI",
-                10
-            )
-        ).pack()
-
-        password_var = tk.StringVar(
-            value=self.generate_strong_password()
-        )
-
-        entry = tk.Entry(
-            window,
-            textvariable=password_var,
-            justify="center",
-            font=(
-                "Consolas",
-                12
-            ),
-            bg=self.PANEL_2,
-            fg=self.CYAN,
-            insertbackground=self.CYAN,
-            bd=0
-        )
-
-        entry.pack(
-            fill="x",
-            padx=35,
-            pady=28,
-            ipady=12
-        )
-
-        def generate():
-
-            password_var.set(
-                self.generate_strong_password()
-            )
-
-        def copy():
-
-            self.root.clipboard_clear()
-
-            self.root.clipboard_append(
-                password_var.get()
-            )
-
-            self.root.update()
-
-            messagebox.showinfo(
-                "Copied",
-                "Password copied to clipboard.\n"
-                "Clipboard clears in 15 seconds.",
-                parent=window
-            )
-
-            self.root.after(
-                15000,
-                self.clear_clipboard
-            )
-
-        buttons = tk.Frame(
-            window,
-            bg=self.PANEL
-        )
-
-        buttons.pack(
-            fill="x",
-            padx=35
-        )
-
-        ttk.Button(
-            buttons,
-            text="🎲 Generate Again",
-            command=generate
-        ).pack(
-            side="left",
-            fill="x",
-            expand=True,
-            padx=(0, 6)
-        )
-
-        ttk.Button(
-            buttons,
-            text="📋 Copy",
-            style="Accent.TButton",
-            command=copy
-        ).pack(
-            side="left",
-            fill="x",
-            expand=True,
-            padx=(6, 0)
+        self.root.after(
+            15000,
+            self.clear_clipboard
         )
 
     # ========================================================
@@ -2534,11 +2994,12 @@ class SecureVault:
         ):
 
             messagebox.showwarning(
-                "Recovery Not Ready",
+                "Recovery Not Set Up",
                 (
-                    "Recovery has not been set up for this vault.\n\n"
-                    "Unlock the vault once with your current "
-                    "master password to create the recovery information."
+                    "Recovery is not set up for this vault.\n\n"
+                    "First unlock SecureVault with your current "
+                    "master password. The app will create the "
+                    "recovery information automatically."
                 )
             )
 
@@ -2550,23 +3011,17 @@ class SecureVault:
                 FORGOT_PASSWORD_URL
             )
 
+            self.root.after(
+                800,
+                self.reset_password_dialog
+            )
+
         except Exception as error:
 
             messagebox.showerror(
-                "Recovery Website Error",
-                (
-                    "Could not open the recovery website.\n\n"
-                    +
-                    str(error)
-                )
+                "Recovery Error",
+                str(error)
             )
-
-            return
-
-        self.root.after(
-            700,
-            self.reset_password_dialog
-        )
 
     # ========================================================
     # RESET PASSWORD
@@ -2577,14 +3032,6 @@ class SecureVault:
         if not os.path.exists(
             RECOVERY_META_FILE
         ):
-
-            messagebox.showwarning(
-                "Recovery Not Ready",
-                (
-                    "Unlock the vault once with your current "
-                    "master password before using recovery."
-                )
-            )
 
             return
 
@@ -2627,8 +3074,8 @@ class SecureVault:
         tk.Label(
             window,
             text=(
-                "Verify your email in the browser first.\n"
-                "Then paste the reset token below."
+                "Verify your email in the browser.\n"
+                "Then paste the reset token here."
             ),
             bg=self.PANEL,
             fg=self.MUTED,
@@ -2641,7 +3088,7 @@ class SecureVault:
             pady=(0, 18)
         )
 
-        def field_label(text):
+        def label(text):
 
             tk.Label(
                 window,
@@ -2659,7 +3106,7 @@ class SecureVault:
                 pady=(8, 5)
             )
 
-        field_label(
+        label(
             "RESET TOKEN"
         )
 
@@ -2672,7 +3119,7 @@ class SecureVault:
             padx=35
         )
 
-        field_label(
+        label(
             "RECOVERY KEY"
         )
 
@@ -2686,7 +3133,7 @@ class SecureVault:
             padx=35
         )
 
-        field_label(
+        label(
             "NEW MASTER PASSWORD"
         )
 
@@ -2700,16 +3147,16 @@ class SecureVault:
             padx=35
         )
 
-        field_label(
+        label(
             "CONFIRM NEW MASTER PASSWORD"
         )
 
-        confirm_password_entry = ttk.Entry(
+        confirm_entry = ttk.Entry(
             window,
             show="•"
         )
 
-        confirm_password_entry.pack(
+        confirm_entry.pack(
             fill="x",
             padx=35
         )
@@ -2750,7 +3197,7 @@ class SecureVault:
             )
 
             confirm_password = (
-                confirm_password_entry
+                confirm_entry
                 .get()
             )
 
@@ -2758,7 +3205,7 @@ class SecureVault:
 
                 messagebox.showwarning(
                     "Missing Token",
-                    "Paste the reset token from the recovery website.",
+                    "Paste the reset token from the website.",
                     parent=window
                 )
 
@@ -2768,7 +3215,7 @@ class SecureVault:
 
                 messagebox.showwarning(
                     "Missing Recovery Key",
-                    "Enter your SecureVault recovery key.",
+                    "Enter your recovery key.",
                     parent=window
                 )
 
@@ -2787,7 +3234,7 @@ class SecureVault:
             if new_password != confirm_password:
 
                 messagebox.showerror(
-                    "Passwords Do Not Match",
+                    "Mismatch",
                     "The new passwords do not match.",
                     parent=window
                 )
@@ -2795,7 +3242,7 @@ class SecureVault:
                 return
 
             status.config(
-                text="Contacting recovery server..."
+                text="Checking recovery token..."
             )
 
             window.update_idletasks()
@@ -2803,8 +3250,7 @@ class SecureVault:
             try:
 
                 request = Request(
-                    BACKEND_URL
-                    +
+                    BACKEND_URL +
                     "/validate-reset-token",
 
                     data=json.dumps({
@@ -2831,7 +3277,8 @@ class SecureVault:
                     )
 
                 if not result.get(
-                    "success"
+                    "success",
+                    False
                 ):
 
                     raise ValueError(
@@ -2849,7 +3296,7 @@ class SecureVault:
                 ).strip().lower()
 
                 local_email = (
-                    get_recovery_email()
+                    self.get_recovery_email()
                 )
 
                 if not local_email:
@@ -2869,13 +3316,13 @@ class SecureVault:
                     )
 
                 status.config(
-                    text="Token verified. Checking recovery key..."
+                    text="Token verified. Unlocking vault..."
                 )
 
                 window.update_idletasks()
 
                 old_password = (
-                    recover_master_password(
+                    self.recover_master_password(
                         recovery_key
                     )
                 )
@@ -2895,16 +3342,13 @@ class SecureVault:
                     old_password
                 )
 
-                new_encrypted_vault = (
-                    encrypt_data(
-                        vault_data,
-                        new_password
-                    )
+                new_encrypted = encrypt_data(
+                    vault_data,
+                    new_password
                 )
 
                 temporary = (
-                    VAULT_FILE
-                    +
+                    VAULT_FILE +
                     ".tmp"
                 )
 
@@ -2915,7 +3359,7 @@ class SecureVault:
                 ) as file:
 
                     json.dump(
-                        new_encrypted_vault,
+                        new_encrypted,
                         file
                     )
 
@@ -2924,7 +3368,7 @@ class SecureVault:
                     VAULT_FILE
                 )
 
-                update_recovery_metadata(
+                self.update_recovery_metadata(
                     local_email,
                     new_password,
                     recovery_key
@@ -2936,6 +3380,10 @@ class SecureVault:
 
                 self.vault = (
                     vault_data
+                )
+
+                self.recovery_key = (
+                    recovery_key
                 )
 
                 self.last_activity = (
@@ -2959,10 +3407,9 @@ class SecureVault:
                 messagebox.showerror(
                     "Recovery Server Error",
                     (
-                        "The recovery server returned "
-                        f"HTTP {error.code}.\n\n"
-                        "Make sure your Vercel backend is deployed "
-                        "and the reset-token endpoint exists."
+                        f"Server returned HTTP {error.code}.\n\n"
+                        "Make sure /validate-reset-token "
+                        "exists in your Vercel app."
                     ),
                     parent=window
                 )
@@ -3029,21 +3476,6 @@ class SecureVault:
         token_entry.focus()
 
     # ========================================================
-    # CLIPBOARD
-    # ========================================================
-
-    def clear_clipboard(self):
-
-        try:
-
-            self.root.clipboard_clear()
-
-            self.root.update()
-
-        except Exception:
-            pass
-
-    # ========================================================
     # LOCK
     # ========================================================
 
@@ -3052,6 +3484,8 @@ class SecureVault:
         self.clear_clipboard()
 
         self.master_password = None
+
+        self.recovery_key = None
 
         self.vault = {
             "accounts": [],
@@ -3069,6 +3503,7 @@ class SecureVault:
         self.clear_clipboard()
 
         self.master_password = None
+        self.recovery_key = None
 
         self.vault = {
             "accounts": [],
@@ -3079,7 +3514,7 @@ class SecureVault:
 
 
 # ============================================================
-# START APPLICATION
+# START
 # ============================================================
 
 if __name__ == "__main__":

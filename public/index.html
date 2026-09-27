@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>SecureVault</title>
 
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -18,7 +24,12 @@
         }
 
         body {
-            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            font-family:
+                "Segoe UI",
+                Arial,
+                Helvetica,
+                sans-serif;
+
             background:
                 radial-gradient(
                     circle at top,
@@ -26,6 +37,7 @@
                     #0a0f19 40%,
                     #05070b 100%
                 );
+
             color: #f4f7fb;
             min-height: 100vh;
         }
@@ -50,10 +62,12 @@
 
             padding: 18px 7%;
 
-            background: rgba(5, 8, 14, 0.82);
+            background: rgba(5, 8, 14, 0.84);
+
             backdrop-filter: blur(14px);
 
-            border-bottom: 1px solid #1d293b;
+            border-bottom:
+                1px solid #1d293b;
         }
 
         .brand {
@@ -91,13 +105,15 @@
 
         .nav-links {
             display: flex;
-            gap: 24px;
             align-items: center;
+            gap: 24px;
         }
 
         .nav-links a {
             color: #96a4b9;
+
             font-size: 14px;
+
             transition: 0.2s;
         }
 
@@ -115,12 +131,15 @@
             display: flex;
             flex-direction: column;
 
-            justify-content: center;
             align-items: center;
+            justify-content: center;
 
             text-align: center;
 
-            padding: 90px 20px 70px;
+            padding:
+                90px
+                20px
+                70px;
         }
 
         .hero-badge {
@@ -128,12 +147,28 @@
             align-items: center;
             gap: 8px;
 
-            padding: 8px 14px;
+            padding:
+                8px
+                14px;
 
             border-radius: 999px;
 
-            background: rgba(97, 218, 251, 0.08);
-            border: 1px solid rgba(97, 218, 251, 0.18);
+            background:
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.08
+                );
+
+            border:
+                1px solid
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.18
+                );
 
             color: #61dafb;
 
@@ -144,7 +179,13 @@
         }
 
         .hero h1 {
-            font-size: clamp(48px, 8vw, 88px);
+            font-size:
+                clamp(
+                    48px,
+                    8vw,
+                    88px
+                );
+
             line-height: 0.98;
 
             letter-spacing: -4px;
@@ -171,6 +212,7 @@
             color: #99a7bb;
 
             font-size: 18px;
+
             line-height: 1.7;
 
             margin-bottom: 35px;
@@ -178,6 +220,7 @@
 
         .hero-buttons {
             display: flex;
+
             gap: 13px;
 
             flex-wrap: wrap;
@@ -187,12 +230,15 @@
 
         .button {
             display: inline-flex;
+
             align-items: center;
             justify-content: center;
 
             min-width: 180px;
 
-            padding: 14px 23px;
+            padding:
+                14px
+                23px;
 
             border-radius: 11px;
 
@@ -223,7 +269,12 @@
 
             box-shadow:
                 0 12px 35px
-                rgba(97, 218, 251, 0.18);
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.18
+                );
         }
 
         .secondary {
@@ -231,7 +282,8 @@
 
             background: #151e2d;
 
-            border: 1px solid #2a374c;
+            border:
+                1px solid #2a374c;
         }
 
         .secondary:hover {
@@ -243,22 +295,33 @@
         ================================================== */
 
         .stats-section {
-            width: min(1100px, 92%);
+            width:
+                min(
+                    1100px,
+                    92%
+                );
 
-            margin: -20px auto 80px;
+            margin:
+                -20px
+                auto
+                80px;
         }
 
         .stats-grid {
             display: grid;
 
             grid-template-columns:
-                repeat(3, 1fr);
+                repeat(
+                    3,
+                    1fr
+                );
 
             gap: 16px;
         }
 
         .stat-card {
             display: flex;
+
             align-items: center;
 
             gap: 15px;
@@ -270,13 +333,24 @@
             border-radius: 17px;
 
             background:
-                rgba(14, 21, 34, 0.88);
+                rgba(
+                    14,
+                    21,
+                    34,
+                    0.88
+                );
 
-            border: 1px solid #233047;
+            border:
+                1px solid #233047;
 
             box-shadow:
                 0 18px 45px
-                rgba(0, 0, 0, 0.18);
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.18
+                );
         }
 
         .stat-icon {
@@ -286,6 +360,7 @@
             flex-shrink: 0;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
@@ -298,6 +373,7 @@
 
         .stat-label {
             font-size: 11px;
+
             font-weight: 800;
 
             letter-spacing: 1px;
@@ -309,6 +385,7 @@
             margin-top: 4px;
 
             font-size: 26px;
+
             font-weight: 800;
 
             color: #f7fbff;
@@ -323,13 +400,20 @@
         }
 
         /* ==================================================
-           FEATURES
+           SECTIONS
         ================================================== */
 
         .section {
-            width: min(1100px, 92%);
+            width:
+                min(
+                    1100px,
+                    92%
+                );
 
-            margin: 0 auto 100px;
+            margin:
+                0
+                auto
+                100px;
         }
 
         .section-heading {
@@ -342,6 +426,7 @@
             color: #61dafb;
 
             font-size: 11px;
+
             font-weight: 800;
 
             letter-spacing: 2px;
@@ -358,7 +443,7 @@
         }
 
         .section-heading p {
-            max-width: 600px;
+            max-width: 650px;
 
             margin: auto;
 
@@ -367,11 +452,18 @@
             line-height: 1.6;
         }
 
+        /* ==================================================
+           FEATURES
+        ================================================== */
+
         .features-grid {
             display: grid;
 
             grid-template-columns:
-                repeat(2, 1fr);
+                repeat(
+                    2,
+                    1fr
+                );
 
             gap: 17px;
         }
@@ -388,7 +480,8 @@
                     #0b111c
                 );
 
-            border: 1px solid #202e44;
+            border:
+                1px solid #202e44;
         }
 
         .feature-icon {
@@ -412,7 +505,285 @@
         }
 
         /* ==================================================
-           DOWNLOAD
+           RELEASES
+        ================================================== */
+
+        .releases-section {
+            margin-top: 10px;
+        }
+
+        .releases-container {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 18px;
+        }
+
+        .release-card {
+            padding: 25px;
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #101a2a,
+                    #0b111b
+                );
+
+            border:
+                1px solid #25334a;
+
+            box-shadow:
+                0 15px 40px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.14
+                );
+        }
+
+        .release-top {
+            display: flex;
+
+            align-items: flex-start;
+
+            justify-content: space-between;
+
+            gap: 20px;
+        }
+
+        .release-title-area {
+            min-width: 0;
+        }
+
+        .release-version {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            margin-bottom: 7px;
+        }
+
+        .release-version h3 {
+            font-size: 24px;
+
+            word-break: break-word;
+        }
+
+        .latest-badge {
+            display: inline-flex;
+
+            align-items: center;
+
+            padding:
+                5px
+                9px;
+
+            border-radius: 999px;
+
+            background:
+                rgba(
+                    99,
+                    230,
+                    190,
+                    0.1
+                );
+
+            border:
+                1px solid
+                rgba(
+                    99,
+                    230,
+                    190,
+                    0.22
+                );
+
+            color: #63e6be;
+
+            font-size: 10px;
+
+            font-weight: 800;
+        }
+
+        .release-name {
+            color: #95a4b9;
+
+            font-size: 14px;
+
+            margin-bottom: 6px;
+        }
+
+        .release-date {
+            color: #647389;
+
+            font-size: 12px;
+        }
+
+        .release-body {
+            margin-top: 17px;
+
+            padding-top: 17px;
+
+            border-top:
+                1px solid #202d41;
+
+            color: #8997aa;
+
+            font-size: 14px;
+
+            line-height: 1.65;
+
+            white-space: pre-wrap;
+
+            overflow-wrap: anywhere;
+        }
+
+        .release-assets {
+            margin-top: 20px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 10px;
+        }
+
+        .asset {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 14px;
+
+            padding: 13px 15px;
+
+            border-radius: 12px;
+
+            background: #0a111c;
+
+            border:
+                1px solid #1e2b3f;
+        }
+
+        .asset-info {
+            min-width: 0;
+        }
+
+        .asset-name {
+            color: #edf4fb;
+
+            font-size: 14px;
+
+            font-weight: 700;
+
+            word-break: break-all;
+        }
+
+        .asset-meta {
+            color: #67768b;
+
+            font-size: 11px;
+
+            margin-top: 4px;
+        }
+
+        .asset-download {
+            flex-shrink: 0;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding:
+                9px
+                14px;
+
+            border-radius: 9px;
+
+            background: #1b4fd1;
+
+            color: white;
+
+            font-size: 12px;
+
+            font-weight: 800;
+
+            transition: 0.2s;
+        }
+
+        .asset-download:hover {
+            background: #2563eb;
+
+            transform: translateY(-1px);
+        }
+
+        .github-release-button {
+            margin-top: 17px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: #61dafb;
+
+            font-size: 12px;
+
+            font-weight: 700;
+        }
+
+        .github-release-button:hover {
+            text-decoration: underline;
+        }
+
+        .loading-releases {
+            text-align: center;
+
+            padding: 45px;
+
+            border-radius: 18px;
+
+            background: #0d1422;
+
+            border:
+                1px solid #223149;
+
+            color: #76859b;
+
+            font-size: 14px;
+        }
+
+        .release-error {
+            text-align: center;
+
+            padding: 30px;
+
+            border-radius: 18px;
+
+            background: #160f15;
+
+            border:
+                1px solid #3a2433;
+
+            color: #d89aae;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+        }
+
+        /* ==================================================
+           DOWNLOAD BOX
         ================================================== */
 
         .download-box {
@@ -422,7 +793,9 @@
 
             text-align: center;
 
-            padding: 65px 25px;
+            padding:
+                65px
+                25px;
 
             border-radius: 23px;
 
@@ -433,7 +806,8 @@
                     #0b111d 65%
                 );
 
-            border: 1px solid #273750;
+            border:
+                1px solid #273750;
         }
 
         .download-box::before {
@@ -447,12 +821,13 @@
             top: -120px;
             left: -80px;
 
-            background: rgba(
-                97,
-                218,
-                251,
-                0.08
-            );
+            background:
+                rgba(
+                    97,
+                    218,
+                    251,
+                    0.08
+                );
 
             border-radius: 50%;
 
@@ -472,7 +847,10 @@
         .download-box p {
             max-width: 600px;
 
-            margin: 0 auto 27px;
+            margin:
+                0
+                auto
+                27px;
 
             color: #8b9aae;
 
@@ -492,9 +870,12 @@
         ================================================== */
 
         footer {
-            border-top: 1px solid #1b2738;
+            border-top:
+                1px solid #1b2738;
 
-            padding: 28px 7%;
+            padding:
+                28px
+                7%;
 
             display: flex;
 
@@ -521,10 +902,6 @@
 
         @media (max-width: 800px) {
 
-            .nav-links {
-                gap: 12px;
-            }
-
             .stats-grid {
                 grid-template-columns: 1fr;
             }
@@ -541,8 +918,23 @@
                 letter-spacing: -2px;
             }
 
+            .release-top {
+                flex-direction: column;
+            }
+
+            .asset {
+                align-items: flex-start;
+
+                flex-direction: column;
+            }
+
+            .asset-download {
+                width: 100%;
+            }
+
             footer {
                 flex-direction: column;
+
                 text-align: center;
             }
         }
@@ -550,7 +942,13 @@
         @media (max-width: 560px) {
 
             .navbar {
-                padding: 14px 5%;
+                padding:
+                    14px
+                    5%;
+            }
+
+            .nav-links {
+                gap: 12px;
             }
 
             .nav-links a:nth-child(2) {
@@ -572,11 +970,19 @@
             .download-box h2 {
                 font-size: 30px;
             }
+
+            .section-heading h2 {
+                font-size: 31px;
+            }
+
         }
+
     </style>
+
 </head>
 
 <body>
+
 
     <!-- =====================================================
          NAVBAR
@@ -588,14 +994,26 @@
             class="brand"
             href="#home"
         >
-            <span class="brand-icon">🔐</span>
-            <span>SecureVault</span>
+
+            <span class="brand-icon">
+                🔐
+            </span>
+
+            <span>
+                SecureVault
+            </span>
+
         </a>
+
 
         <div class="nav-links">
 
             <a href="#features">
                 Features
+            </a>
+
+            <a href="#releases">
+                Releases
             </a>
 
             <a href="#download">
@@ -627,16 +1045,20 @@
             🔒 PRIVATE • LOCAL • SECURE
         </div>
 
+
         <h1>
             SecureVault
         </h1>
+
 
         <p>
             A modern password manager designed to keep
             your credentials protected in an encrypted
             local vault, with password generation,
-            automatic locking, and recovery support.
+            automatic locking, recovery support,
+            and automatic updates.
         </p>
+
 
         <div class="hero-buttons">
 
@@ -644,14 +1066,15 @@
                 class="button primary"
                 href="https://github.com/mjaxjzif/Secure-Vault-FP/releases/latest/download/SecureVault.exe"
             >
-                ⬇️ Download SecureVault
+                ⬇️ Download V1.1.1
             </a>
+
 
             <a
                 class="button secondary"
-                href="#features"
+                href="#releases"
             >
-                Explore Features
+                View Releases
             </a>
 
         </div>
@@ -667,7 +1090,8 @@
 
         <div class="stats-grid">
 
-            <!-- DOWNLOADS -->
+
+            <!-- TOTAL DOWNLOADS -->
 
             <div class="stat-card">
 
@@ -750,6 +1174,7 @@
 
             </div>
 
+
         </div>
 
     </section>
@@ -767,7 +1192,7 @@
         <div class="section-heading">
 
             <div class="eyebrow">
-                SecureVault V1.1.1
+                SECUREVAULT V1.1.1
             </div>
 
             <h2>
@@ -784,6 +1209,7 @@
 
 
         <div class="features-grid">
+
 
             <div class="feature">
 
@@ -869,8 +1295,7 @@
 
                 <p>
                     Verify your recovery email and receive
-                    a temporary reset token when recovering
-                    your vault.
+                    a temporary reset token during recovery.
                 </p>
 
             </div>
@@ -887,10 +1312,52 @@
                 </h3>
 
                 <p>
-                    SecureVault can check the official
-                    GitHub release for a newer version.
+                    Installed versions can check the official
+                    GitHub release for a newer SecureVault version.
                 </p>
 
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         RELEASES
+    ====================================================== -->
+
+    <section
+        class="section releases-section"
+        id="releases"
+    >
+
+        <div class="section-heading">
+
+            <div class="eyebrow">
+                DOWNLOAD HISTORY
+            </div>
+
+            <h2>
+                SecureVault Releases
+            </h2>
+
+            <p>
+                Browse all published SecureVault releases
+                and download the version you need.
+            </p>
+
+        </div>
+
+
+        <div
+            id="releasesContainer"
+            class="releases-container"
+        >
+
+            <div class="loading-releases">
+                Loading SecureVault releases...
             </div>
 
         </div>
@@ -918,12 +1385,14 @@
                 SecureVault from the official GitHub release.
             </p>
 
+
             <a
                 class="button primary"
                 href="https://github.com/mjaxjzif/Secure-Vault-FP/releases/latest/download/SecureVault.exe"
             >
                 ⬇️ Download V1.1.1
             </a>
+
 
             <div class="version">
                 Current release: V1.1.1
@@ -944,15 +1413,18 @@
             © 2026 SecureVault
         </div>
 
+
         <div>
             Created by Aadvik Vivek
         </div>
+
 
         <div>
 
             <a
                 href="https://github.com/mjaxjzif/Secure-Vault-FP"
                 target="_blank"
+                rel="noopener noreferrer"
             >
                 GitHub
             </a>
@@ -971,31 +1443,131 @@
 
 
     <!-- =====================================================
-         DOWNLOAD COUNTER
+         GITHUB RELEASES SCRIPT
     ====================================================== -->
 
     <script>
 
-        const GITHUB_API =
-            "https://api.github.com/repos/mjaxjzif/Secure-Vault-FP/releases";
+        const GITHUB_OWNER =
+            "mjaxjzif";
 
-        const DOWNLOAD_NAME =
+        const GITHUB_REPO =
+            "Secure-Vault-FP";
+
+        const GITHUB_API_BASE =
+            `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
+
+        const DOWNLOAD_ASSET_NAME =
             "SecureVault.exe";
 
 
-        async function loadDownloadCount() {
+        /* ==================================================
+           HELPERS
+        ================================================== */
 
-            const countElement =
-                document.getElementById(
-                    "downloadCount"
-                );
+        function formatDate(dateString) {
 
-            try {
+            if (!dateString) {
+                return "Unknown date";
+            }
+
+            const date =
+                new Date(dateString);
+
+            if (Number.isNaN(
+                date.getTime()
+            )) {
+
+                return "Unknown date";
+
+            }
+
+            return date.toLocaleDateString(
+                undefined,
+                {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                }
+            );
+
+        }
+
+
+        function formatBytes(bytes) {
+
+            if (!bytes || bytes <= 0) {
+                return "";
+            }
+
+            const units = [
+                "B",
+                "KB",
+                "MB",
+                "GB"
+            ];
+
+            let size =
+                Number(bytes);
+
+            let unitIndex = 0;
+
+
+            while (
+                size >= 1024 &&
+                unitIndex < units.length - 1
+            ) {
+
+                size /= 1024;
+
+                unitIndex++;
+
+            }
+
+
+            return (
+                `${size.toFixed(
+                    size >= 100
+                        ? 0
+                        : 1
+                )} ${units[unitIndex]}`
+            );
+
+        }
+
+
+        function escapeText(value) {
+
+            if (
+                value === null ||
+                value === undefined
+            ) {
+
+                return "";
+
+            }
+
+            return String(value);
+
+        }
+
+
+        /* ==================================================
+           FETCH ALL RELEASES
+        ================================================== */
+
+        async function fetchAllReleases() {
+
+            const allReleases = [];
+
+            let page = 1;
+
+
+            while (true) {
 
                 const response =
                     await fetch(
-                        GITHUB_API +
-                        "?per_page=100",
+                        `${GITHUB_API_BASE}?per_page=100&page=${page}`,
                         {
                             headers: {
                                 "Accept":
@@ -1008,7 +1580,7 @@
                 if (!response.ok) {
 
                     throw new Error(
-                        "GitHub API request failed"
+                        `GitHub returned HTTP ${response.status}`
                     );
 
                 }
@@ -1018,58 +1590,612 @@
                     await response.json();
 
 
-                let totalDownloads = 0;
-
-
-                for (
-                    const release of releases
+                if (
+                    !Array.isArray(
+                        releases
+                    )
                 ) {
+
+                    break;
+
+                }
+
+
+                allReleases.push(
+                    ...releases
+                );
+
+
+                if (
+                    releases.length < 100
+                ) {
+
+                    break;
+
+                }
+
+
+                page++;
+
+            }
+
+
+            return allReleases;
+
+        }
+
+
+        /* ==================================================
+           RENDER RELEASES
+        ================================================== */
+
+        function renderReleases(
+            releases
+        ) {
+
+            const container =
+                document.getElementById(
+                    "releasesContainer"
+                );
+
+
+            if (
+                !releases.length
+            ) {
+
+                container.innerHTML =
+                    `
+                    <div class="release-error">
+                        No published SecureVault releases were found.
+                    </div>
+                    `;
+
+                return;
+
+            }
+
+
+            container.innerHTML = "";
+
+
+            let totalDownloads = 0;
+
+
+            releases.forEach(
+                (
+                    release,
+                    index
+                ) => {
+
 
                     if (
                         release.draft ||
                         release.prerelease
                     ) {
-                        continue;
+
+                        return;
+
                     }
+
+
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
+
+                    card.className =
+                        "release-card";
+
+
+                    /* ----------------------------------
+                       TOP
+                    ---------------------------------- */
+
+                    const top =
+                        document.createElement(
+                            "div"
+                        );
+
+                    top.className =
+                        "release-top";
+
+
+                    const titleArea =
+                        document.createElement(
+                            "div"
+                        );
+
+                    titleArea.className =
+                        "release-title-area";
+
+
+                    const versionRow =
+                        document.createElement(
+                            "div"
+                        );
+
+                    versionRow.className =
+                        "release-version";
+
+
+                    const version =
+                        document.createElement(
+                            "h3"
+                        );
+
+                    let tag =
+                        escapeText(
+                            release.tag_name
+                        );
+
+
+                    if (
+                        tag &&
+                        !tag
+                            .toLowerCase()
+                            .startsWith("v")
+                    ) {
+
+                        tag =
+                            "V" + tag;
+
+                    }
+                    else {
+
+                        tag =
+                            tag.toUpperCase();
+
+                    }
+
+
+                    version.textContent =
+                        tag;
+
+
+                    versionRow.appendChild(
+                        version
+                    );
+
+
+                    if (
+                        index === 0
+                    ) {
+
+                        const badge =
+                            document.createElement(
+                                "span"
+                            );
+
+                        badge.className =
+                            "latest-badge";
+
+                        badge.textContent =
+                            "LATEST";
+
+                        versionRow.appendChild(
+                            badge
+                        );
+
+                    }
+
+
+                    titleArea.appendChild(
+                        versionRow
+                    );
+
+
+                    const releaseName =
+                        document.createElement(
+                            "div"
+                        );
+
+                    releaseName.className =
+                        "release-name";
+
+                    releaseName.textContent =
+                        escapeText(
+                            release.name ||
+                            release.tag_name
+                        );
+
+                    titleArea.appendChild(
+                        releaseName
+                    );
+
+
+                    const date =
+                        document.createElement(
+                            "div"
+                        );
+
+                    date.className =
+                        "release-date";
+
+                    date.textContent =
+                        "Published " +
+                        formatDate(
+                            release.published_at
+                        );
+
+                    titleArea.appendChild(
+                        date
+                    );
+
+
+                    top.appendChild(
+                        titleArea
+                    );
+
+
+                    card.appendChild(
+                        top
+                    );
+
+
+                    /* ----------------------------------
+                       RELEASE NOTES
+                    ---------------------------------- */
+
+                    const body =
+                        document.createElement(
+                            "div"
+                        );
+
+                    body.className =
+                        "release-body";
+
+                    const releaseBody =
+                        String(
+                            release.body ||
+                            ""
+                        ).trim();
+
+
+                    if (
+                        releaseBody
+                    ) {
+
+                        body.textContent =
+                            releaseBody;
+
+                    }
+                    else {
+
+                        body.textContent =
+                            "No release notes provided.";
+
+                    }
+
+
+                    card.appendChild(
+                        body
+                    );
+
+
+                    /* ----------------------------------
+                       ASSETS
+                    ---------------------------------- */
+
+                    const assetsContainer =
+                        document.createElement(
+                            "div"
+                        );
+
+                    assetsContainer.className =
+                        "release-assets";
 
 
                     const assets =
-                        release.assets || [];
+                        Array.isArray(
+                            release.assets
+                        )
+                        ? release.assets
+                        : [];
 
 
-                    for (
-                        const asset of assets
-                    ) {
+                    let visibleAssets =
+                        0;
 
-                        if (
-                            asset.name ===
-                            DOWNLOAD_NAME
-                        ) {
 
-                            totalDownloads +=
-                                Number(
-                                    asset.download_count || 0
+                    assets.forEach(
+                        asset => {
+
+                            if (
+                                asset.state &&
+                                asset.state !==
+                                "uploaded"
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            const assetCard =
+                                document.createElement(
+                                    "div"
                                 );
 
+                            assetCard.className =
+                                "asset";
+
+
+                            const assetInfo =
+                                document.createElement(
+                                    "div"
+                                );
+
+                            assetInfo.className =
+                                "asset-info";
+
+
+                            const assetName =
+                                document.createElement(
+                                    "div"
+                                );
+
+                            assetName.className =
+                                "asset-name";
+
+                            assetName.textContent =
+                                escapeText(
+                                    asset.name
+                                );
+
+
+                            const assetMeta =
+                                document.createElement(
+                                    "div"
+                                );
+
+                            assetMeta.className =
+                                "asset-meta";
+
+
+                            const assetDownloads =
+                                Number(
+                                    asset.download_count ||
+                                    0
+                                );
+
+
+                            totalDownloads +=
+                                asset.name ===
+                                DOWNLOAD_ASSET_NAME
+                                    ? assetDownloads
+                                    : 0;
+
+
+                            const assetSize =
+                                formatBytes(
+                                    asset.size
+                                );
+
+
+                            const downloadText =
+                                assetDownloads === 1
+                                ? "1 download"
+                                : `${assetDownloads.toLocaleString()} downloads`;
+
+
+                            assetMeta.textContent =
+                                (
+                                    assetSize
+                                    ? `${assetSize} • `
+                                    : ""
+                                ) +
+                                downloadText;
+
+
+                            assetInfo.appendChild(
+                                assetName
+                            );
+
+                            assetInfo.appendChild(
+                                assetMeta
+                            );
+
+
+                            assetCard.appendChild(
+                                assetInfo
+                            );
+
+
+                            const downloadLink =
+                                document.createElement(
+                                    "a"
+                                );
+
+                            downloadLink.className =
+                                "asset-download";
+
+                            downloadLink.href =
+                                asset.browser_download_url;
+
+                            downloadLink.target =
+                                "_blank";
+
+                            downloadLink.rel =
+                                "noopener noreferrer";
+
+                            downloadLink.textContent =
+                                "⬇️ Download";
+
+
+                            assetCard.appendChild(
+                                downloadLink
+                            );
+
+
+                            assetsContainer.appendChild(
+                                assetCard
+                            );
+
+
+                            visibleAssets++;
+
                         }
+                    );
+
+
+                    if (
+                        visibleAssets === 0
+                    ) {
+
+                        const noAssets =
+                            document.createElement(
+                                "div"
+                            );
+
+                        noAssets.className =
+                            "asset";
+
+
+                        const noAssetsText =
+                            document.createElement(
+                                "div"
+                            );
+
+                        noAssetsText.className =
+                            "asset-meta";
+
+                        noAssetsText.textContent =
+                            "No downloadable assets are attached to this release.";
+
+
+                        noAssets.appendChild(
+                            noAssetsText
+                        );
+
+
+                        assetsContainer.appendChild(
+                            noAssets
+                        );
 
                     }
 
+
+                    card.appendChild(
+                        assetsContainer
+                    );
+
+
+                    /* ----------------------------------
+                       GITHUB PAGE LINK
+                    ---------------------------------- */
+
+                    if (
+                        release.html_url
+                    ) {
+
+                        const githubLink =
+                            document.createElement(
+                                "a"
+                            );
+
+                        githubLink.className =
+                            "github-release-button";
+
+                        githubLink.href =
+                            release.html_url;
+
+                        githubLink.target =
+                            "_blank";
+
+                        githubLink.rel =
+                            "noopener noreferrer";
+
+                        githubLink.textContent =
+                            "View this release on GitHub →";
+
+
+                        card.appendChild(
+                            githubLink
+                        );
+
+                    }
+
+
+                    container.appendChild(
+                        card
+                    );
+
                 }
+            );
 
 
-                countElement.textContent =
-                    totalDownloads.toLocaleString();
+            document.getElementById(
+                "downloadCount"
+            ).textContent =
+                totalDownloads.toLocaleString();
+
+        }
+
+
+        /* ==================================================
+           LOAD RELEASES
+        ================================================== */
+
+        async function loadReleases() {
+
+            const container =
+                document.getElementById(
+                    "releasesContainer"
+                );
+
+
+            try {
+
+                const releases =
+                    await fetchAllReleases();
+
+
+                const publishedReleases =
+                    releases.filter(
+                        release =>
+                            !release.draft &&
+                            !release.prerelease
+                    );
+
+
+                renderReleases(
+                    publishedReleases
+                );
 
             }
             catch (error) {
 
                 console.error(
-                    "Download counter error:",
+                    "Could not load GitHub releases:",
                     error
                 );
 
-                countElement.textContent =
+
+                container.innerHTML =
+                    `
+                    <div class="release-error">
+                        <strong>
+                            Could not load the releases.
+                        </strong>
+
+                        <br><br>
+
+                        Please try again later, or
+                        <a
+                            href="https://github.com/mjaxjzif/Secure-Vault-FP/releases"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="color:#61dafb;"
+                        >
+                            view the releases directly on GitHub
+                        </a>.
+                    </div>
+                    `;
+
+
+                document.getElementById(
+                    "downloadCount"
+                ).textContent =
                     "Unavailable";
 
             }
@@ -1077,9 +2203,14 @@
         }
 
 
-        loadDownloadCount();
+        /* ==================================================
+           START
+        ================================================== */
+
+        loadReleases();
 
     </script>
+
 
 </body>
 </html>

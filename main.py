@@ -7,6 +7,11 @@ import string
 import time
 import webbrowser
 import base64
+import sys
+import threading
+import tempfile
+import subprocess
+import hashlib
 
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -23,7 +28,7 @@ from crypto import encrypt_data, decrypt_data
 # ============================================================
 
 APP_NAME = "SecureVault"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 
 VAULT_FILE = "vault.json"
 RECOVERY_META_FILE = "recovery_meta.json"
@@ -37,6 +42,17 @@ FORGOT_PASSWORD_URL = (
 )
 
 PBKDF2_ITERATIONS = 390000
+
+# GitHub repository used for updates
+GITHUB_REPO = "mjaxjzif/Secure-Vault-FP"
+
+GITHUB_API_URL = (
+    f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+)
+
+GITHUB_DOWNLOAD_URL = (
+    f"https://github.com/{GITHUB_REPO}/releases/latest/download/SecureVault.exe"
+)
 
 
 # ============================================================
@@ -68,7 +84,7 @@ class SecureVault:
         self.root = root
 
         self.root.title(
-            f"{APP_NAME} v{APP_VERSION}"
+            f"{APP_NAME} V{APP_VERSION}"
         )
 
         self.root.geometry("1180x720")
@@ -108,6 +124,13 @@ class SecureVault:
         self.check_lock()
 
         self.login_screen()
+
+        # Check for updates shortly after startup.
+        # It only runs in the compiled EXE.
+        self.root.after(
+            1500,
+            self.check_for_updates
+        )
 
     # ========================================================
     # STYLES
@@ -214,7 +237,8 @@ class SecureVault:
         if (
             self.master_password is not None
             and
-            time.time() - self.last_activity >= AUTO_LOCK_TIME
+            time.time() - self.last_activity
+            >= AUTO_LOCK_TIME
         ):
             self.lock()
 
@@ -240,7 +264,11 @@ class SecureVault:
         except Exception:
             pass
 
-    def password_toggle(self, entry, button):
+    def password_toggle(
+        self,
+        entry,
+        button
+    ):
 
         if entry.cget("show") == "":
 
@@ -263,6 +291,636 @@ class SecureVault:
             )
 
     # ========================================================
+    # VERSION / UPDATE HELPERS
+    # ========================================================
+
+    def parse_version(
+        self,
+        version
+    ):
+
+        version = str(
+            version
+        ).strip().lower()
+
+        if version.startswith("v"):
+            version = version[1:]
+
+        parts = version.split(".")
+
+        numbers = []
+
+        for part in parts[:3]:
+
+            number = ""
+
+            for char in part:
+
+                if char.isdigit():
+                    number += char
+                else:
+                    break
+
+            numbers.append(
+                int(number)
+                if number
+                else 0
+            )
+
+        while len(numbers) < 3:
+            numbers.append(0)
+
+        return tuple(numbers[:3])
+
+    def check_for_updates(self):
+
+        # Do not attempt self-update while running as
+        # normal Python source.
+        if not getattr(
+            sys,
+            "frozen",
+            False
+        ):
+            return
+
+        threading.Thread(
+            target=self.update_check_worker,
+            daemon=True
+        ).start()
+
+    def update_check_worker(self):
+
+        try:
+
+            request = Request(
+                GITHUB_API_URL,
+                headers={
+                    "Accept":
+                        "application/vnd.github+json",
+
+                    "User-Agent":
+                        "SecureVault",
+
+                    "X-GitHub-Api-Version":
+                        "2022-11-28"
+                }
+            )
+
+            with urlopen(
+                request,
+                timeout=15
+            ) as response:
+
+                data = json.loads(
+                    response
+                    .read()
+                    .decode("utf-8")
+                )
+
+            latest_version = str(
+                data.get(
+                    "tag_name",
+                    ""
+                )
+            ).strip()
+
+            if not latest_version:
+                return
+
+            if (
+                self.parse_version(
+                    latest_version
+                )
+                <=
+                self.parse_version(
+                    APP_VERSION
+                )
+            ):
+                return
+
+            download_url = (
+                GITHUB_DOWNLOAD_URL
+            )
+
+            digest = ""
+
+            for asset in data.get(
+                "assets",
+                []
+            ):
+
+                if asset.get(
+                    "name"
+                ) == "SecureVault.exe":
+
+                    download_url = (
+                        asset.get(
+                            "browser_download_url",
+                            GITHUB_DOWNLOAD_URL
+                        )
+                    )
+
+                    digest = str(
+                        asset.get(
+                            "digest",
+                            ""
+                        )
+                    )
+
+                    break
+
+            self.root.after(
+                0,
+                lambda:
+                    self.show_update_window(
+                        latest_version,
+                        download_url,
+                        digest
+                    )
+            )
+
+        except Exception as error:
+
+            print(
+                "Update check failed:",
+                error
+            )
+
+    def show_update_window(
+        self,
+        latest_version,
+        download_url,
+        digest
+    ):
+
+        window = tk.Toplevel(
+            self.root
+        )
+
+        window.title(
+            "SecureVault Update"
+        )
+
+        window.geometry(
+            "540x360"
+        )
+
+        window.configure(
+            bg=self.PANEL
+        )
+
+        window.resizable(
+            False,
+            False
+        )
+
+        window.transient(
+            self.root
+        )
+
+        window.grab_set()
+
+        tk.Label(
+            window,
+            text="🚀 Update Available",
+            bg=self.PANEL,
+            fg=self.TEXT,
+            font=(
+                "Segoe UI",
+                23,
+                "bold"
+            )
+        ).pack(
+            pady=(28, 8)
+        )
+
+        tk.Label(
+            window,
+            text=(
+                f"Current version: V{APP_VERSION}\n"
+                f"Latest version: {latest_version}"
+            ),
+            bg=self.PANEL,
+            fg=self.MUTED,
+            justify="center",
+            font=(
+                "Segoe UI",
+                10
+            )
+        ).pack(
+            pady=8
+        )
+
+        tk.Label(
+            window,
+            text=(
+                "A newer version of SecureVault is available.\n"
+                "The update will be downloaded and installed automatically."
+            ),
+            bg=self.PANEL,
+            fg="#aab6c8",
+            justify="center",
+            font=(
+                "Segoe UI",
+                9
+            )
+        ).pack(
+            pady=10
+        )
+
+        status = tk.Label(
+            window,
+            text="Ready to update.",
+            bg=self.PANEL,
+            fg=self.MUTED,
+            font=(
+                "Segoe UI",
+                9
+            )
+        )
+
+        status.pack(
+            pady=8
+        )
+
+        buttons = tk.Frame(
+            window,
+            bg=self.PANEL
+        )
+
+        buttons.pack(
+            pady=15
+        )
+
+        update_button = tk.Button(
+            buttons,
+            text="Update Now",
+            bg="#2563eb",
+            fg="white",
+            activebackground="#1d4ed8",
+            activeforeground="white",
+            bd=0,
+            padx=30,
+            pady=11,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            )
+        )
+
+        update_button.pack(
+            side="left",
+            padx=6
+        )
+
+        later_button = tk.Button(
+            buttons,
+            text="Later",
+            bg=self.PANEL_3,
+            fg=self.TEXT,
+            activebackground="#24344c",
+            activeforeground="white",
+            bd=0,
+            padx=30,
+            pady=11,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+            command=window.destroy
+        )
+
+        later_button.pack(
+            side="left",
+            padx=6
+        )
+
+        def start():
+
+            update_button.config(
+                state="disabled"
+            )
+
+            later_button.config(
+                state="disabled"
+            )
+
+            status.config(
+                text="Downloading update..."
+            )
+
+            threading.Thread(
+                target=self.download_update_worker,
+                args=(
+                    download_url,
+                    digest,
+                    window,
+                    status
+                ),
+                daemon=True
+            ).start()
+
+        update_button.config(
+            command=start
+        )
+
+    def download_update_worker(
+        self,
+        download_url,
+        digest,
+        window,
+        status
+    ):
+
+        new_file = None
+
+        try:
+
+            temp_directory = tempfile.gettempdir()
+
+            new_file = os.path.join(
+                temp_directory,
+                (
+                    "SecureVault_update_"
+                    +
+                    secrets.token_hex(8)
+                    +
+                    ".exe"
+                )
+            )
+
+            request = Request(
+                download_url,
+                headers={
+                    "User-Agent":
+                        "SecureVault-Updater"
+                }
+            )
+
+            with urlopen(
+                request,
+                timeout=120
+            ) as response:
+
+                with open(
+                    new_file,
+                    "wb"
+                ) as output:
+
+                    while True:
+
+                        chunk = response.read(
+                            1024 * 1024
+                        )
+
+                        if not chunk:
+                            break
+
+                        output.write(
+                            chunk
+                        )
+
+            # ------------------------------------------------
+            # VERIFY SHA-256 WHEN AVAILABLE
+            # ------------------------------------------------
+
+            if digest.startswith(
+                "sha256:"
+            ):
+
+                expected = (
+                    digest
+                    .split(
+                        ":",
+                        1
+                    )[1]
+                    .strip()
+                    .lower()
+                )
+
+                hasher = hashlib.sha256()
+
+                with open(
+                    new_file,
+                    "rb"
+                ) as source:
+
+                    while True:
+
+                        chunk = source.read(
+                            1024 * 1024
+                        )
+
+                        if not chunk:
+                            break
+
+                        hasher.update(
+                            chunk
+                        )
+
+                actual = (
+                    hasher
+                    .hexdigest()
+                    .lower()
+                )
+
+                if actual != expected:
+
+                    raise ValueError(
+                        "The downloaded update failed SHA-256 verification."
+                    )
+
+            app_path = os.path.abspath(
+                sys.executable
+            )
+
+            app_directory = os.path.dirname(
+                app_path
+            )
+
+            # Check that the EXE directory is writable.
+            test_file = os.path.join(
+                app_directory,
+                (
+                    ".securevault_write_test_"
+                    +
+                    secrets.token_hex(6)
+                )
+            )
+
+            try:
+
+                with open(
+                    test_file,
+                    "w",
+                    encoding="utf-8"
+                ) as file:
+
+                    file.write("test")
+
+                os.remove(
+                    test_file
+                )
+
+            except Exception:
+
+                raise PermissionError(
+                    "SecureVault cannot update itself in this folder. "
+                    "Move the EXE to a folder you can write to, such as "
+                    "your Downloads folder."
+                )
+
+            updater_script = os.path.join(
+                temp_directory,
+                (
+                    "SecureVault_updater_"
+                    +
+                    secrets.token_hex(8)
+                    +
+                    ".cmd"
+                )
+            )
+
+            pid = os.getpid()
+
+            script = f"""@echo off
+setlocal
+
+set "APP_PATH={app_path}"
+set "NEW_PATH={new_file}"
+set "APP_PID={pid}"
+
+:WAIT_FOR_APP
+tasklist /FI "PID eq %APP_PID%" | find "%APP_PID%" >nul
+
+if not errorlevel 1 (
+    timeout /t 1 /nobreak >nul
+    goto WAIT_FOR_APP
+)
+
+timeout /t 1 /nobreak >nul
+
+copy /Y "%NEW_PATH%" "%APP_PATH%" >nul
+
+if errorlevel 1 (
+    del "%NEW_PATH%" >nul 2>&1
+    del "%~f0" >nul 2>&1
+    exit /b 1
+)
+
+del "%NEW_PATH%" >nul 2>&1
+
+start "" "%APP_PATH%"
+
+del "%~f0" >nul 2>&1
+
+endlocal
+exit /b 0
+"""
+
+            with open(
+                updater_script,
+                "w",
+                encoding="utf-8"
+            ) as file:
+
+                file.write(
+                    script
+                )
+
+            creation_flags = (
+                subprocess.CREATE_NEW_PROCESS_GROUP
+                |
+                subprocess.DETACHED_PROCESS
+                |
+                subprocess.CREATE_NO_WINDOW
+            )
+
+            subprocess.Popen(
+                [
+                    "cmd.exe",
+                    "/c",
+                    updater_script
+                ],
+                creationflags=creation_flags,
+                close_fds=True
+            )
+
+            self.root.after(
+                0,
+                lambda:
+                    status.config(
+                        text="Update downloaded. Restarting..."
+                    )
+            )
+
+            self.root.after(
+                1000,
+                window.destroy
+            )
+
+            self.root.after(
+                1100,
+                self.close
+            )
+
+            self.root.after(
+                1300,
+                lambda:
+                    os._exit(0)
+            )
+
+        except Exception as error:
+
+            if (
+                new_file
+                and
+                os.path.exists(new_file)
+            ):
+
+                try:
+                    os.remove(
+                        new_file
+                    )
+                except Exception:
+                    pass
+
+            self.root.after(
+                0,
+                lambda:
+                    self.update_failed(
+                        window,
+                        status,
+                        str(error)
+                    )
+            )
+
+    def update_failed(
+        self,
+        window,
+        status,
+        error
+    ):
+
+        status.config(
+            text="Update failed."
+        )
+
+        messagebox.showerror(
+            "Update Failed",
+            (
+                "SecureVault could not update automatically.\n\n"
+                +
+                error
+            ),
+            parent=window
+        )
+
+    # ========================================================
     # RECOVERY CRYPTO
     # ========================================================
 
@@ -273,11 +931,13 @@ class SecureVault:
     ):
 
         if not recovery_key:
+
             raise ValueError(
                 "Recovery key is empty."
             )
 
         if not salt:
+
             raise ValueError(
                 "Recovery salt is missing."
             )
@@ -314,9 +974,11 @@ class SecureVault:
         )
 
         encrypted_password = (
-            fernet.encrypt(
+            fernet
+            .encrypt(
                 master_password.encode("utf-8")
-            ).decode("utf-8")
+            )
+            .decode("utf-8")
         )
 
         metadata = {
@@ -376,7 +1038,9 @@ class SecureVault:
             encoding="utf-8"
         ) as file:
 
-            metadata = json.load(file)
+            metadata = json.load(
+                file
+            )
 
         salt = base64.b64decode(
             metadata["salt"]
@@ -388,9 +1052,11 @@ class SecureVault:
         )
 
         encrypted_password = (
-            fernet.encrypt(
+            fernet
+            .encrypt(
                 master_password.encode("utf-8")
-            ).decode("utf-8")
+            )
+            .decode("utf-8")
         )
 
         metadata["email"] = email
@@ -440,15 +1106,19 @@ class SecureVault:
             encoding="utf-8"
         ) as file:
 
-            metadata = json.load(file)
+            metadata = json.load(
+                file
+            )
 
         salt = base64.b64decode(
             metadata["salt"]
         )
 
-        encrypted_password = metadata[
-            "encrypted_master_password"
-        ]
+        encrypted_password = (
+            metadata[
+                "encrypted_master_password"
+            ]
+        )
 
         fernet = self.derive_recovery_key(
             recovery_key,
@@ -474,6 +1144,7 @@ class SecureVault:
         if not os.path.exists(
             RECOVERY_META_FILE
         ):
+
             return ""
 
         try:
@@ -484,7 +1155,9 @@ class SecureVault:
                 encoding="utf-8"
             ) as file:
 
-                metadata = json.load(file)
+                metadata = json.load(
+                    file
+                )
 
             return str(
                 metadata.get(
@@ -515,7 +1188,9 @@ class SecureVault:
             expand=True
         )
 
+        # ----------------------------------------------------
         # LEFT SIDE
+        # ----------------------------------------------------
 
         left = tk.Frame(
             outer,
@@ -600,7 +1275,7 @@ class SecureVault:
 
         tk.Label(
             branding,
-            text=f"Version {APP_VERSION}",
+            text=f"V{APP_VERSION}",
             bg=self.BG,
             fg="#58667a",
             font=(
@@ -612,7 +1287,9 @@ class SecureVault:
             pady=(25, 0)
         )
 
+        # ----------------------------------------------------
         # RIGHT SIDE
+        # ----------------------------------------------------
 
         right = tk.Frame(
             outer,
@@ -845,7 +1522,8 @@ class SecureVault:
         self.vault = {
             "accounts": [],
             "email": email,
-            "recovery_key": self.recovery_key
+            "recovery_key": self.recovery_key,
+            "recovery_key_confirmed": False
         }
 
         self.last_activity = time.time()
@@ -864,8 +1542,11 @@ class SecureVault:
 
             messagebox.showerror(
                 "Recovery Setup Error",
-                str(error)
+                str(error),
+                parent=self.root
             )
+
+            self.master_password = None
 
             return
 
@@ -1071,7 +1752,8 @@ class SecureVault:
     def generate_recovery_key(self):
 
         characters = (
-            string.ascii_uppercase +
+            string.ascii_uppercase
+            +
             string.digits
         )
 
@@ -1151,8 +1833,8 @@ class SecureVault:
             messagebox.showinfo(
                 "Recovery Enabled",
                 (
-                    "Recovery has been enabled for this vault.\n\n"
-                    "Your new Recovery Key will now be shown."
+                    "Recovery has been enabled.\n\n"
+                    "Your Recovery Key will now be shown."
                 ),
                 parent=self.root
             )
@@ -1324,9 +2006,14 @@ class SecureVault:
                 window.after(
                     1500,
                     lambda:
-                    copy_button.config(
-                        text="Copy Recovery Key"
-                    )
+                        copy_button.config(
+                            text="Copy Recovery Key"
+                        )
+                )
+
+                self.root.after(
+                    15000,
+                    self.clear_clipboard
                 )
 
             except Exception as error:
@@ -1387,7 +2074,8 @@ class SecureVault:
 
         key_box.bind(
             "<Control-c>",
-            lambda event: copy_key()
+            lambda event:
+                copy_key()
         )
 
         tk.Label(
@@ -1444,8 +2132,11 @@ class SecureVault:
         tk.Label(
             card,
             text=(
-                "Save this key somewhere safe.\n"
-                "It is required for password recovery."
+                "Your Recovery Key is required if you lose\n"
+                "your master password.\n\n"
+                "If you lose both the master password and\n"
+                "Recovery Key, SecureVault cannot recover\n"
+                "your vault."
             ),
             bg=self.PANEL,
             fg=self.MUTED,
@@ -1455,7 +2146,7 @@ class SecureVault:
                 10
             )
         ).pack(
-            pady=12
+            pady=(10, 15)
         )
 
         key_box = tk.Entry(
@@ -1484,7 +2175,7 @@ class SecureVault:
 
         key_box.pack(
             padx=35,
-            pady=16,
+            pady=12,
             ipady=9
         )
 
@@ -1500,13 +2191,16 @@ class SecureVault:
 
                 self.root.update()
 
-                messagebox.showinfo(
-                    "Copied",
-                    (
-                        "Recovery key copied to clipboard.\n\n"
-                        "Clipboard clears in 15 seconds."
-                    ),
-                    parent=card
+                copy_button.config(
+                    text="Copied ✓"
+                )
+
+                self.root.after(
+                    1500,
+                    lambda:
+                        copy_button.config(
+                            text="📋 Copy Recovery Key"
+                        )
                 )
 
                 self.root.after(
@@ -1522,22 +2216,110 @@ class SecureVault:
                     parent=card
                 )
 
-        ttk.Button(
+        copy_button = tk.Button(
             card,
             text="📋 Copy Recovery Key",
-            command=copy
-        ).pack(
+            command=copy,
+            bg="#2563eb",
+            fg="white",
+            activebackground="#1d4ed8",
+            activeforeground="white",
+            bd=0,
+            padx=22,
+            pady=10,
+            cursor="hand2",
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            )
+        )
+
+        copy_button.pack(
             fill="x",
             padx=35,
             pady=5
         )
 
-        ttk.Button(
+        saved_var = tk.BooleanVar(
+            value=False
+        )
+
+        def update_continue():
+
+            if saved_var.get():
+
+                continue_button.config(
+                    state="normal"
+                )
+
+            else:
+
+                continue_button.config(
+                    state="disabled"
+                )
+
+        checkbox = tk.Checkbutton(
+            card,
+            text=(
+                "I have securely saved my Recovery Key."
+            ),
+            variable=saved_var,
+            command=update_continue,
+            bg=self.PANEL,
+            fg=self.TEXT,
+            activebackground=self.PANEL,
+            activeforeground=self.TEXT,
+            selectcolor=self.PANEL_2,
+            font=(
+                "Segoe UI",
+                10,
+                "bold"
+            ),
+            cursor="hand2"
+        )
+
+        checkbox.pack(
+            pady=(15, 5)
+        )
+
+        tk.Label(
+            card,
+            text=(
+                "You cannot continue until you confirm this."
+            ),
+            bg=self.PANEL,
+            fg="#d69e2e",
+            font=(
+                "Segoe UI",
+                8
+            )
+        ).pack(
+            pady=(0, 10)
+        )
+
+        def continue_to_vault():
+
+            if not saved_var.get():
+                return
+
+            self.vault[
+                "recovery_key_confirmed"
+            ] = True
+
+            self.save()
+
+            self.dashboard()
+
+        continue_button = ttk.Button(
             card,
             text="Continue to SecureVault →",
             style="Accent.TButton",
-            command=self.dashboard
-        ).pack(
+            command=continue_to_vault,
+            state="disabled"
+        )
+
+        continue_button.pack(
             fill="x",
             padx=35,
             pady=(5, 28)
@@ -1600,7 +2382,9 @@ class SecureVault:
                 encoding="utf-8"
             ) as file:
 
-                encrypted = json.load(file)
+                encrypted = json.load(
+                    file
+                )
 
             vault_data = decrypt_data(
                 encrypted,
@@ -1628,7 +2412,7 @@ class SecureVault:
             ).strip().lower()
 
             # ------------------------------------------------
-            # OLD VAULT MIGRATION
+            # NO RECOVERY KEY
             # ------------------------------------------------
 
             if not recovery_key:
@@ -1646,6 +2430,10 @@ class SecureVault:
                     )
 
                     if not email:
+
+                        self.master_password = None
+                        self.recovery_key = None
+
                         return
 
                 self.vault[
@@ -1656,6 +2444,10 @@ class SecureVault:
                     "recovery_key"
                 ] = recovery_key
 
+                self.vault[
+                    "recovery_key_confirmed"
+                ] = False
+
                 self.save()
 
                 self.create_recovery_metadata(
@@ -1664,19 +2456,15 @@ class SecureVault:
                     recovery_key
                 )
 
-                messagebox.showinfo(
-                    "Recovery Enabled",
-                    (
-                        "Recovery has been enabled.\n\n"
-                        "Your recovery key is:\n\n"
-                        +
-                        recovery_key +
-                        "\n\n"
-                        "Save it somewhere safe."
-                    )
-                )
+                self.recovery_screen()
 
-            elif not os.path.exists(
+                return
+
+            # ------------------------------------------------
+            # RECOVERY METADATA MISSING
+            # ------------------------------------------------
+
+            if not os.path.exists(
                 RECOVERY_META_FILE
             ):
 
@@ -1687,6 +2475,10 @@ class SecureVault:
                     )
 
                     if not email:
+
+                        self.master_password = None
+                        self.recovery_key = None
+
                         return
 
                     self.vault[
@@ -1703,11 +2495,29 @@ class SecureVault:
 
             self.recovery_key = recovery_key
 
+            # ------------------------------------------------
+            # FORCE RECOVERY KEY CONFIRMATION
+            # ------------------------------------------------
+
+            confirmed = bool(
+                self.vault.get(
+                    "recovery_key_confirmed",
+                    False
+                )
+            )
+
+            if not confirmed:
+
+                self.recovery_screen()
+
+                return
+
             self.dashboard()
 
         except Exception:
 
             self.master_password = None
+            self.recovery_key = None
 
             messagebox.showerror(
                 "Access Denied",
@@ -1773,7 +2583,7 @@ class SecureVault:
 
         tk.Label(
             sidebar,
-            text=f"VERSION {APP_VERSION}",
+            text=f"V{APP_VERSION}",
             bg=self.PANEL,
             fg="#64728a",
             font=(
@@ -1782,7 +2592,7 @@ class SecureVault:
                 "bold"
             )
         ).pack(
-            pady=(2, 6)
+            pady=(2, 5)
         )
 
         tk.Label(
@@ -1796,7 +2606,7 @@ class SecureVault:
                 "bold"
             )
         ).pack(
-            pady=(0, 27)
+            pady=(0, 25)
         )
 
         self.sidebar_button(
@@ -1926,7 +2736,7 @@ class SecureVault:
 
         tk.Label(
             header,
-            text=f"v{APP_VERSION}",
+            text=f"V{APP_VERSION}",
             bg=self.BG,
             fg="#5d6d83",
             font=(
@@ -3036,9 +3846,8 @@ class SecureVault:
                 "Recovery Not Set Up",
                 (
                     "Recovery is not set up for this vault.\n\n"
-                    "First unlock SecureVault with your current "
-                    "master password. The app will create the "
-                    "recovery information automatically."
+                    "Unlock the vault first so SecureVault "
+                    "can create the recovery information."
                 )
             )
 
@@ -3323,7 +4132,10 @@ class SecureVault:
                     raise ValueError(
                         result.get(
                             "message",
-                            "Invalid reset token."
+                            result.get(
+                                "error",
+                                "Invalid reset token."
+                            )
                         )
                     )
 
@@ -3355,7 +4167,7 @@ class SecureVault:
                     )
 
                 status.config(
-                    text="Token verified. Unlocking vault..."
+                    text="Token verified. Recovering vault..."
                 )
 
                 window.update_idletasks()
@@ -3380,6 +4192,15 @@ class SecureVault:
                     encrypted_vault,
                     old_password
                 )
+
+                # Keep recovery information intact.
+                vault_data[
+                    "recovery_key"
+                ] = recovery_key
+
+                vault_data[
+                    "recovery_key_confirmed"
+                ] = True
 
                 new_encrypted = encrypt_data(
                     vault_data,
@@ -3447,8 +4268,8 @@ class SecureVault:
                     "Recovery Server Error",
                     (
                         f"Server returned HTTP {error.code}.\n\n"
-                        "Make sure /validate-reset-token "
-                        "exists in your Vercel app."
+                        "Make sure the Vercel recovery server "
+                        "is online."
                     ),
                     parent=window
                 )
@@ -3462,8 +4283,7 @@ class SecureVault:
                 messagebox.showerror(
                     "Connection Error",
                     (
-                        "Could not connect to the online "
-                        "recovery server.\n\n"
+                        "Could not connect to the recovery server.\n\n"
                         +
                         str(error.reason)
                     ),
@@ -3500,7 +4320,7 @@ class SecureVault:
         tk.Label(
             window,
             text=(
-                "Never share your recovery key or reset token."
+                "Never share your Recovery Key or Reset Token."
             ),
             bg=self.PANEL,
             fg="#5e6d83",

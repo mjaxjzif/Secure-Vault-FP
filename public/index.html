@@ -2,10 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>SecureVault</title>
 
@@ -21,12 +18,7 @@
         }
 
         body {
-            font-family:
-                "Segoe UI",
-                Arial,
-                Helvetica,
-                sans-serif;
-
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
             background:
                 radial-gradient(
                     circle at top,
@@ -34,7 +26,6 @@
                     #0a0f19 40%,
                     #05070b 100%
                 );
-
             color: #f4f7fb;
             min-height: 100vh;
         }
@@ -676,6 +667,8 @@
 
         <div class="stats-grid">
 
+            <!-- DOWNLOADS -->
+
             <div class="stat-card">
 
                 <div class="stat-icon">
@@ -704,6 +697,8 @@
             </div>
 
 
+            <!-- SECURITY -->
+
             <div class="stat-card">
 
                 <div class="stat-icon">
@@ -729,6 +724,8 @@
             </div>
 
 
+            <!-- VERSION -->
+
             <div class="stat-card">
 
                 <div class="stat-icon">
@@ -741,15 +738,12 @@
                         CURRENT VERSION
                     </div>
 
-                    <div
-                        class="stat-value"
-                        id="versionNumber"
-                    >
+                    <div class="stat-value">
                         V1.1.1
                     </div>
 
                     <div class="stat-subtitle">
-                        Latest published version
+                        Latest SecureVault version
                     </div>
 
                 </div>
@@ -773,7 +767,7 @@
         <div class="section-heading">
 
             <div class="eyebrow">
-                SecureVault
+                SecureVault V1.1.1
             </div>
 
             <h2>
@@ -782,7 +776,7 @@
 
             <p>
                 SecureVault combines a simple desktop
-                interface with useful password-management
+                interface with password-management
                 and recovery features.
             </p>
 
@@ -856,9 +850,8 @@
                 </h3>
 
                 <p>
-                    A recovery key provides an additional
-                    way to restore access when the master
-                    password is forgotten.
+                    Save your Recovery Key during setup.
+                    It is required for the recovery process.
                 </p>
 
             </div>
@@ -894,9 +887,8 @@
                 </h3>
 
                 <p>
-                    Installed versions can check the
-                    official GitHub release for a newer
-                    SecureVault version.
+                    SecureVault can check the official
+                    GitHub release for a newer version.
                 </p>
 
             </div>
@@ -918,7 +910,7 @@
         <div class="download-box">
 
             <h2>
-                Get SecureVault
+                Get SecureVault V1.1.1
             </h2>
 
             <p>
@@ -967,7 +959,9 @@
 
             &nbsp;•&nbsp;
 
-            <a href="forgot-password.html">
+            <a
+                href="forgot-password.html"
+            >
                 Recovery
             </a>
 
@@ -989,16 +983,11 @@
             "SecureVault.exe";
 
 
-        async function loadDownloadStats() {
+        async function loadDownloadCount() {
 
             const countElement =
                 document.getElementById(
                     "downloadCount"
-                );
-
-            const versionElement =
-                document.getElementById(
-                    "versionNumber"
                 );
 
             try {
@@ -1019,7 +1008,7 @@
                 if (!response.ok) {
 
                     throw new Error(
-                        "GitHub API request failed."
+                        "GitHub API request failed"
                     );
 
                 }
@@ -1031,39 +1020,16 @@
 
                 let totalDownloads = 0;
 
-                let newestVersion =
-                    "V1.1.1";
-
 
                 for (
                     const release of releases
                 ) {
 
-                    // Ignore drafts and prereleases
                     if (
                         release.draft ||
                         release.prerelease
                     ) {
-
                         continue;
-
-                    }
-
-
-                    // Get latest release version
-                    if (
-                        newestVersion === "V1.1.1" &&
-                        release.tag_name
-                    ) {
-
-                        newestVersion =
-                            release.tag_name
-                                .startsWith("v")
-                            ? "V" +
-                              release.tag_name
-                                  .substring(1)
-                            : release.tag_name;
-
                     }
 
 
@@ -1082,8 +1048,7 @@
 
                             totalDownloads +=
                                 Number(
-                                    asset.download_count ||
-                                    0
+                                    asset.download_count || 0
                                 );
 
                         }
@@ -1095,11 +1060,6 @@
 
                 countElement.textContent =
                     totalDownloads.toLocaleString();
-
-
-                versionElement.textContent =
-                    newestVersion;
-
 
             }
             catch (error) {
@@ -1117,7 +1077,7 @@
         }
 
 
-        loadDownloadStats();
+        loadDownloadCount();
 
     </script>
 
